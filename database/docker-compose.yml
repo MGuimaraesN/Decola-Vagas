@@ -9,6 +9,7 @@ services:
       MYSQL_DATABASE: 'DecolaVagas'
       MYSQL_USER: 'mateus'
       MYSQL_PASSWORD: 'Decola2025.'
+      TZ: America/Sao_Paulo
     ports:
       - "3306:3306"
     volumes:
@@ -26,6 +27,7 @@ services:
     environment:
       PMA_HOST: 'mysql-db'
       MYSQL_ROOT_PASSWORD: 'DecolaVagas2025.'
+      TZ: America/Sao_Paulo
     networks:
       - network-db
     depends_on:
