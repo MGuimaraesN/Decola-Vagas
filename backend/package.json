@@ -9,7 +9,7 @@
     "dev:db": "npx prisma generate dev && npx prisma migrate dev",
     "build": "tsc",
     "start": "node dist/index.js",
-    "start:db": "npx prisma generate && npx prisma migrate"
+    "start:db": "npx prisma generate && npx prisma migrate dev"
   },
   "keywords": [],
   "author": "",

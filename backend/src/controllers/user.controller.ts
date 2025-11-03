@@ -120,6 +120,24 @@ export class UserController {
             return res.status(500).json({error: 'Erro interno do servidor'});
             };
         }
+
+    async profile(req: Request, res: Response) {
+        try {
+            const userEmail = (req as any).user?.email;
+
+            const userData = await prisma.user.findUnique({
+                where: {email: userEmail}
+            });
+
+            res.status(200).json({
+                userId: userData?.id,
+                firstName: userData?.firstName,
+                lastName: userData?.lastName,
+                email: userData?.email
+            })
+        } catch (error) {
+            console.error('Erro ao obter perfil do usuário:', error)
+            res.status(500).json({error: 'Erro interno do servidor'});
+        }
+    }
 };
-
-
