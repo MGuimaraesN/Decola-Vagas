@@ -11,7 +11,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Diz ao App para usar as rotas de usuário
 app.use('/auth', userRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/jobs', jobRoutes);
