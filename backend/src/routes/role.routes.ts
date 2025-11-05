@@ -6,7 +6,6 @@ const roleRoutes = Router();
 const roleController = new RoleController();
 const authMiddleware = new AuthMiddleware();
 
-// Rotas CRUD para Roles
 roleRoutes.post('/', authMiddleware.auth, roleController.create);
 roleRoutes.get('/', authMiddleware.auth, roleController.getAll);
 roleRoutes.get('/:id', authMiddleware.auth, roleController.getById);
