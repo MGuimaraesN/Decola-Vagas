@@ -39,4 +39,9 @@ institutionRoutes.delete(
     institutionController.delete
 );
 
+institutionRoutes.get(
+    '/public',
+    institutionController.getAll
+);
+
 export { institutionRoutes };
