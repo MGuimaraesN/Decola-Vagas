@@ -1,40 +1,40 @@
 import { Router } from 'express';
-import { CategoryController } from '../controllers/category.controller.js';
+import { AreaController } from '../controllers/area.controller.js';
 import { AuthMiddleware } from '../middlewares/auth.middlewares.js';
 import { RbacMiddleware } from '../middlewares/rbac.middlewares.js';
 
-const categoryRoutes = Router();
-const categoryController = new CategoryController();
+const areaRoutes = Router();
+const areaController = new AreaController();
 const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
-categoryRoutes.get(
+areaRoutes.get(
     '/',
     authMiddleware.auth,
-    categoryController.getAll
+    areaController.getAll
 );
-categoryRoutes.get(
+areaRoutes.get(
     '/:id',
     authMiddleware.auth,
-    categoryController.getById
+    areaController.getById
 );
-categoryRoutes.post(
+areaRoutes.post(
     '/',
     authMiddleware.auth,
     rbacMiddleware.checkRole(['admin', 'superadmin']),
-    categoryController.create
+    areaController.create
 );
-categoryRoutes.put(
+areaRoutes.put(
     '/:id',
     authMiddleware.auth,
     rbacMiddleware.checkRole(['admin', 'superadmin']),
-    categoryController.update
+    areaController.update
 );
-categoryRoutes.delete(
+areaRoutes.delete(
     '/:id',
     authMiddleware.auth,
     rbacMiddleware.checkRole(['admin', 'superadmin']),
-    categoryController.delete
+    areaController.delete
 );
 
-export { categoryRoutes };
+export { areaRoutes };
