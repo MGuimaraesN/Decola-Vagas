@@ -205,12 +205,30 @@ export class UserController {
                 return res.status(403).json({ error: 'Usuário não pertence a esta instituição' });
             }
 
-            await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: { email: userEmail },
                 data: { activeInstitutionId: institutionId }
             });
 
-            res.status(200).json({ message: 'Instituição alterada com sucesso' });
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                throw new Error('Secret não está definido!');
+            }
+
+            const payload = {
+                userId: updatedUser.id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                activeInstitutionId: updatedUser.activeInstitutionId
+            };
+
+            const token = jwt.sign(payload, secret, { expiresIn: '8h' });
+
+            res.status(200).json({
+                message: 'Instituição alterada com sucesso',
+                access_token: token
+            });
         } catch (error) {
             console.error('Erro ao trocar de instituição:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
