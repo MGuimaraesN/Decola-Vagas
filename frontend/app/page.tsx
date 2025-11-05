@@ -1,48 +1,22 @@
 "use client";
-import { useState, useEffect } from 'react';
+
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
 
-export default function MuralPage() {
-    const [jobs, setJobs] = useState([]);
-    const router = useRouter();
+export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-    useEffect(() => {
-        const fetchJobs = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login');
+      }
+    }
+  }, [user, loading, router]);
 
-            try {
-                const res = await fetch('/api/jobs/my-institution', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setJobs(data);
-                } else {
-                    console.error('Failed to fetch jobs');
-                }
-            } catch (error) {
-                console.error('Failed to fetch jobs', error);
-            }
-        };
-
-        fetchJobs();
-    }, [router]);
-
-    return (
-        <div>
-            <h1>Mural de Vagas</h1>
-            <ul>
-                {jobs.map((job) => (
-                    <li key={job.id}>{job.title}</li>
-                ))}
-            </ul>
-        </div>
-    );
+  return <div>Loading...</div>;
 }

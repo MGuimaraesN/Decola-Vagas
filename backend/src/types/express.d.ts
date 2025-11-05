@@ -1,16 +1,17 @@
 import { JwtPayload } from 'jsonwebtoken';
 
-// Define a interface para o payload do usuário,
-// baseado no que você assinou no user.controller.ts
+import { JwtPayload } from 'jsonwebtoken';
+
 interface UserPayload extends JwtPayload {
+  userId: number;
   firstName: string;
   lastName: string;
   email: string;
+  activeInstitutionId: number | null;
 }
 
-// Estende a interface Request do Express
 declare namespace Express {
   export interface Request {
-    user?: UserPayload; // Adiciona a propriedade 'user' opcional
+    user?: UserPayload;
   }
 }

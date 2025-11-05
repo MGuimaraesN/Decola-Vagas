@@ -6,6 +6,7 @@ import { jobRoutes } from './routes/job.routes.js';
 import { institutionRoutes } from './routes/institution.routes.js';
 import { roleRoutes } from './routes/role.routes.js';
 import { areaRoutes } from './routes/area.routes.js';
+import { adminRoutes } from './routes/admin.routes.js';
 
 const app = express();
 
@@ -18,5 +19,6 @@ app.use('/jobs', jobRoutes);
 app.use('/institutions', institutionRoutes);
 app.use('/roles', roleRoutes);
 app.use('/areas', areaRoutes);
+app.use('/admin', adminRoutes);
 
 export { app };

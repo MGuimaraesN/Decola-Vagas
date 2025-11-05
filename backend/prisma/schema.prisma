@@ -7,6 +7,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator seed {
+  provider = "ts-node"
+  output   = "prisma/seed.ts"
+}
+
 model User {
   id                  Int                   @id @default(autoincrement())
   firstName           String

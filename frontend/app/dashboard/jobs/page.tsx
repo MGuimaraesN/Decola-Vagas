@@ -4,6 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../../context/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Toaster, toast } from 'sonner';
 
 export default function ManageJobsPage() {
   const [jobs, setJobs] = useState([]);
@@ -17,8 +30,6 @@ export default function ManageJobsPage() {
       return;
     }
     try {
-      // Usamos a mesma rota do mural, pois ela já filtra pela instituição ativa.
-      // Se fosse necessário uma rota para "vagas que eu criei", ela seria usada aqui.
       const res = await fetch('http://localhost:5000/jobs/my-institution', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -39,31 +50,30 @@ export default function ManageJobsPage() {
 
   const handleDelete = async (jobId: number) => {
     if (!token) return;
-    if (confirm('Tem certeza que deseja excluir esta vaga?')) {
-      try {
-        const res = await fetch(`http://localhost:5000/jobs/delete/${jobId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (res.ok) {
-          // Atualiza a lista de vagas após a exclusão
-          fetchJobs();
-        } else {
-          alert('Falha ao excluir a vaga.');
-        }
-      } catch (err) {
-        alert('Erro de rede.');
+    try {
+      const res = await fetch(`http://localhost:5000/jobs/delete/${jobId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (res.ok) {
+        toast.success('Vaga excluída com sucesso!');
+        fetchJobs();
+      } else {
+        toast.error('Falha ao excluir a vaga.');
       }
+    } catch (err) {
+      toast.error('Erro de rede.');
     }
   };
 
   return (
     <div className="container mx-auto">
+      <Toaster />
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Gerenciar Minhas Vagas</h1>
-        <Link href="/dashboard/jobs/new" className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
-          Criar Nova Vaga
-        </Link>
+        <Button asChild>
+          <Link href="/dashboard/jobs/new">Criar Nova Vaga</Link>
+        </Button>
       </div>
 
       {error && <p className="text-red-500">{error}</p>}
@@ -84,12 +94,34 @@ export default function ManageJobsPage() {
                   <td className="px-6 py-4">{job.title}</td>
                   <td className="px-6 py-4">{job.status}</td>
                   <td className="px-6 py-4 text-center">
-                    <Link href={`/dashboard/jobs/edit/${job.id}`} className="text-blue-600 hover:underline mr-4">
-                      Editar
-                    </Link>
-                    <button onClick={() => handleDelete(job.id)} className="text-red-600 hover:underline">
-                      Excluir
-                    </button>
+                    <Button asChild variant="link">
+                      <Link href={`/dashboard/jobs/edit/${job.id}`}>
+                        Editar
+                      </Link>
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive">Excluir</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Tem certeza que deseja excluir esta vaga?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Essa ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(job.id)}
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </td>
                 </tr>
               ))

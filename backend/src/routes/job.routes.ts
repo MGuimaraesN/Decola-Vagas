@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { JobController } from '../controllers/job.controller.js';
 import { AuthMiddleware } from '../middlewares/auth.middlewares.js';
+import { checkRole } from '../middlewares/rbac.middleware.js';
 
 const jobRoutes = Router();
 const jobController = new JobController();
@@ -10,6 +11,6 @@ jobRoutes.post('/create', authMiddleware.auth, jobController.create);
 jobRoutes.put('/edit/:id', authMiddleware.auth, jobController.edit);
 jobRoutes.delete('/delete/:id', authMiddleware.auth, jobController.delete);
 jobRoutes.get('/my-institution', authMiddleware.auth, jobController.getJobsByInstitution);
-jobRoutes.get('/admin', authMiddleware.auth, jobController.getAllJobs);
+jobRoutes.get('/admin', authMiddleware.auth, checkRole(['admin', 'superadmin']), jobController.getAllJobs);
 
 export { jobRoutes };
