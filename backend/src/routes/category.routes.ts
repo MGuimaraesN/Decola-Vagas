@@ -6,8 +6,10 @@ const categoryRoutes = Router();
 const categoryController = new CategoryController();
 const authMiddleware = new AuthMiddleware();
 
-
-categoryRoutes.post('/create', authMiddleware.auth, categoryController.create);
-categoryRoutes.get('/get', authMiddleware.auth, categoryController.getId);
+categoryRoutes.get('/', authMiddleware.auth, categoryController.getAll);
+categoryRoutes.get('/:id', authMiddleware.auth, categoryController.getById);
+categoryRoutes.post('/', authMiddleware.auth, categoryController.create);
+categoryRoutes.put('/:id', authMiddleware.auth, categoryController.update);
+categoryRoutes.delete('/:id', authMiddleware.auth, categoryController.delete);
 
 export { categoryRoutes };
