@@ -24,6 +24,11 @@ interface Area {
   name: string;
 }
 
+interface Company {
+  id: number;
+  name: string;
+}
+
 export default function EditJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -31,10 +36,12 @@ export default function EditJobPage() {
   const [telephone, setTelephone] = useState('');
   const [areaId, setAreaId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [status, setStatus] = useState('rascunho'); // NOVO: Estado para o status
+  const [companyId, setCompanyId] = useState(''); // Estado para empresa
+  const [status, setStatus] = useState('rascunho');
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]); // Estado para empresas
   const [isLoading, setIsLoading] = useState(true);
 
   const { token } = useAuth();
@@ -48,14 +55,16 @@ export default function EditJobPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [jobRes, catRes, areaRes] = await Promise.all([
+        const [jobRes, catRes, areaRes, compRes] = await Promise.all([
           fetch(`http://localhost:5000/jobs/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch('http://localhost:5000/categories', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('http://localhost:5000/areas', { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch('http://localhost:5000/areas', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('http://localhost:5000/companies', { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
 
         if (catRes.ok) setCategories(await catRes.json());
         if (areaRes.ok) setAreas(await areaRes.json());
+        if (compRes.ok) setCompanies(await compRes.json());
         
         if (jobRes.ok) {
           const jobData = await jobRes.json();
@@ -65,7 +74,8 @@ export default function EditJobPage() {
           setTelephone(jobData.telephone);
           setAreaId(jobData.areaId.toString());
           setCategoryId(jobData.categoryId.toString());
-          setStatus(jobData.status); // NOVO: Carrega o status
+          setCompanyId(jobData.companyId?.toString() || ''); // Carrega a empresa
+          setStatus(jobData.status);
         } else {
           toast.error('Falha ao carregar dados da vaga.');
         }
@@ -101,7 +111,8 @@ export default function EditJobPage() {
           telephone,
           areaId: parseInt(areaId),
           categoryId: parseInt(categoryId),
-          status: status // NOVO: Enviando o status atualizado
+          companyId: companyId ? parseInt(companyId) : null, // Enviando a empresa
+          status: status
         }),
       });
 
@@ -150,6 +161,18 @@ export default function EditJobPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label htmlFor="companyId" className="block text-sm font-medium text-neutral-700 mb-1">Empresa (Opcional)</label>
+            <Select value={companyId} onValueChange={setCompanyId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma</SelectItem>
+                {companies.map((company) => <SelectItem key={company.id} value={String(company.id)}>{company.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <label htmlFor="areaId" className="block text-sm font-medium text-neutral-700 mb-1">Área</label>
             <Select value={areaId} onValueChange={setAreaId} required>

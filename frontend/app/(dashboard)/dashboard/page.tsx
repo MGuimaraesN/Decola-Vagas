@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Briefcase, CheckCircle, Clock, Loader2 } from 'lucide-react';
-import JobDetailModal from '@/components/JobDetailModal'; // Importando o modal
+import { Briefcase, CheckCircle, Clock, Loader2, Bookmark } from 'lucide-react';
+import { JobDetailModal } from '@/components/JobDetailModal'; // Corrigido o import
 import { toast } from 'sonner';
 
 // Definir a interface Job para tipagem
@@ -54,7 +54,11 @@ export default function DashboardPage() {
 
   // --- NOVO: Estado para o Modal ---
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Estado para vagas salvas
+  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(true);
   // --- FIM NOVO ---
 
   const [stats, setStats] = useState({
@@ -71,17 +75,18 @@ export default function DashboardPage() {
       return;
     }
 
-    const fetchJobs = async () => {
+    const fetchJobsAndSavedIds = async () => {
       setIsLoading(true);
+      setIsLoadingSavedJobs(true);
       try {
-        const res = await fetch('http://localhost:5000/jobs/my-institution', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        // Busca de vagas e de IDs salvos em paralelo
+        const [jobsRes, savedIdsRes] = await Promise.all([
+            fetch('http://localhost:5000/jobs/my-institution', { headers: { Authorization: `Bearer ${token}` } }),
+            fetch('http://localhost:5000/saved-jobs/my-saved/ids', { headers: { Authorization: `Bearer ${token}` } })
+        ]);
 
-        if (res.ok) {
-          const data: Job[] = await res.json();
+        if (jobsRes.ok) {
+          const data: Job[] = await jobsRes.json();
           setJobs(data);
 
           // Calcular estatísticas
@@ -102,20 +107,63 @@ export default function DashboardPage() {
         } else {
           toast.error('Falha ao carregar as vagas.');
         }
+
+        if (savedIdsRes.ok) {
+            const ids: number[] = await savedIdsRes.json();
+            setSavedJobIds(new Set(ids));
+        } else {
+            toast.error('Falha ao carregar vagas salvas.');
+        }
+
       } catch (err) {
         toast.error('Erro de rede.');
       } finally {
         setIsLoading(false);
+        setIsLoadingSavedJobs(false);
       }
     };
 
-    fetchJobs();
+    fetchJobsAndSavedIds();
   }, [token, activeInstitutionId]);
+
+  const handleToggleSaveJob = async (jobId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede que o modal da vaga abra
+    if (isSaving) return;
+    setIsSaving(true);
+
+    const isSaved = savedJobIds.has(jobId);
+    const url = `http://localhost:5000/saved-jobs/${jobId}`;
+    const method = isSaved ? 'DELETE' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+            const newSet = new Set(savedJobIds);
+            if (isSaved) {
+                newSet.delete(jobId);
+                toast.info('Vaga removida dos favoritos.');
+            } else {
+                newSet.add(jobId);
+                toast.success('Vaga salva com sucesso!');
+            }
+            setSavedJobIds(newSet);
+        } else {
+            toast.error(`Falha ao ${isSaved ? 'remover' : 'salvar'} vaga.`);
+        }
+    } catch (error) {
+        toast.error('Erro de rede.');
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   // Abre o modal com os detalhes da vaga clicada
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
-    setIsModalOpen(true);
   };
   
   const recentJobs = jobs.slice(0, 5);
@@ -192,16 +240,21 @@ export default function DashboardPage() {
                   >
                     Status
                   </th>
+                   <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">Salvar</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-neutral-200">
                 {jobs.map((job) => (
                   <tr 
                     key={job.id} 
-                    className="hover:bg-neutral-50 cursor-pointer"
-                    onClick={() => handleJobClick(job)} // NOVO: Click handler
+                    className="hover:bg-neutral-50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-700 hover:underline">
+                    <td
+                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-700 hover:underline cursor-pointer"
+                        onClick={() => handleJobClick(job)}
+                    >
                       {job.title}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
@@ -224,6 +277,17 @@ export default function DashboardPage() {
                         {job.status === 'rascunho' ? 'Rascunho' : (job.status === 'published' || job.status === 'open' ? 'Publicado' : 'Fechado')}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                            onClick={(e) => handleToggleSaveJob(job.id, e)}
+                            disabled={isLoadingSavedJobs || isSaving}
+                            className="p-2 rounded-full hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            <Bookmark
+                                className={`h-5 w-5 ${savedJobIds.has(job.id) ? 'text-blue-600 fill-current' : 'text-neutral-400'}`}
+                            />
+                        </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -237,11 +301,16 @@ export default function DashboardPage() {
       </div>
 
       {/* --- NOVO: Renderiza o Modal --- */}
-      <JobDetailModal 
-        job={selectedJob} 
-        isOpen={isModalOpen} 
-        onOpenChange={setIsModalOpen} 
-      />
+       {selectedJob && (
+        <JobDetailModal
+            job={selectedJob}
+            isOpen={!!selectedJob}
+            onClose={() => setSelectedJob(null)}
+            isSaved={savedJobIds.has(selectedJob.id)}
+            onToggleSave={(jobId) => handleToggleSaveJob(jobId, new MouseEvent('click'))} // Simula um evento
+            isSaving={isSaving || isLoadingSavedJobs}
+        />
+       )}
     </div>
   );
 }

@@ -19,6 +19,11 @@ userRoutes.get(
     authMiddleware.auth,
     userController.profile
 );
+userRoutes.put(
+    '/profile',
+    authMiddleware.auth,
+    userController.updateProfile
+);
 userRoutes.post(
     '/change-password',
     authMiddleware.auth,

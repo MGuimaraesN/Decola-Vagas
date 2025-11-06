@@ -5,7 +5,7 @@ export class JobController {
 
     async create(req: Request, res: Response) {
         // Agora 'status' é pego do body, com 'rascunho' como padrão
-        const { title, description, areaId, categoryId, status, email, telephone } = req.body;
+        const { title, description, areaId, categoryId, status, email, telephone, companyId } = req.body;
         const authorId = (req as any).user?.userId;
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
 
@@ -34,6 +34,7 @@ export class JobController {
                     authorId: authorId,
                     institutionId: activeInstitutionId,
                     ip: req.ip || 'IP não disponível',
+                    companyId: companyId ? parseInt(companyId) : null,
                 },
             });
             res.status(201).json(job);
@@ -46,7 +47,7 @@ export class JobController {
     async edit(req: Request, res: Response) {
         const { id } = req.params;
         // Adicionado 'status' aqui também
-        const { title, description, areaId, categoryId, status, email, telephone } = req.body;
+        const { title, description, areaId, categoryId, status, email, telephone, companyId } = req.body;
         const authorId = (req as any).user?.userId
 
         if (!authorId) {
@@ -86,6 +87,7 @@ export class JobController {
                     status: status, // Permite atualização de status
                     email: email,
                     telephone: telephone,
+                    companyId: companyId ? parseInt(companyId) : null,
                 },
             });
             res.status(200).json(updatedJob);
@@ -156,6 +158,7 @@ export class JobController {
                     },
                     area: true,
                     category: true,
+                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc' // Ordena por mais recente
@@ -183,7 +186,8 @@ export class JobController {
                     category: true,
                     institution: {
                         select: { name: true }
-                    }
+                    },
+                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc'
@@ -213,7 +217,8 @@ export class JobController {
                     category: true,
                     author: {
                         select: { firstName: true, lastName: true }
-                    }
+                    },
+                    company: true,
                 }
             });
 
@@ -241,6 +246,7 @@ export class JobController {
                     area: true,
                     category: true,
                     institution: true,
+                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc'

@@ -1,4 +1,4 @@
-// NOVO ARQUIVO: frontend/components/JobDetailModal.tsx
+// frontend/components/JobDetailModal.tsx
 "use client";
 
 import {
@@ -7,10 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
-import { Briefcase, MapPin, Mail, Phone, User, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Briefcase, MapPin, Mail, Phone, User, Clock, Building, Bookmark } from 'lucide-react';
 
-// Tipagem completa para a vaga (ajuste conforme seu schema)
+// Tipagem completa para a vaga, incluindo a empresa opcional
 interface Job {
   id: number;
   title: string;
@@ -22,15 +24,23 @@ interface Job {
   area: { name: string };
   category: { name: string };
   author: { firstName: string; lastName: string };
+  company?: {
+      name: string;
+      websiteUrl?: string | null;
+  } | null;
+  institution: { name: string };
 }
 
 interface JobDetailModalProps {
   job: Job | null;
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void; // Alterado de onOpenChange para onClose para clareza
+  isSaved: boolean;
+  onToggleSave: (jobId: number) => void;
+  isSaving: boolean;
 }
 
-export default function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailModalProps) {
+export const JobDetailModal = ({ job, isOpen, onClose, isSaved, onToggleSave, isSaving }: JobDetailModalProps) => {
   if (!job) return null;
 
   const formatDate = (dateString: string) => {
@@ -42,40 +52,66 @@ export default function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailM
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-neutral-900">{job.title}</DialogTitle>
-          <DialogDescription className="pt-1">
-            <span
-              className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                job.status === 'published' || job.status === 'open'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-neutral-100 text-neutral-800'
-              }`}
-            >
-              {job.status}
-            </span>
-          </DialogDescription>
+            <div className="flex justify-between items-start">
+                <div>
+                    <DialogTitle className="text-2xl font-bold text-neutral-900">{job.title}</DialogTitle>
+                    <DialogDescription className="pt-2 flex items-center gap-4">
+                        <span
+                        className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                            job.status === 'published' || job.status === 'open'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-neutral-100 text-neutral-800'
+                        }`}
+                        >
+                        {job.status}
+                        </span>
+                        {job.company && (
+                            <div className="flex items-center text-sm text-neutral-600">
+                                <Building size={14} className="mr-1.5" /> {job.company.name}
+                            </div>
+                        )}
+                        <div className="flex items-center text-sm text-neutral-600">
+                            <MapPin size={14} className="mr-1.5" /> {job.institution.name}
+                        </div>
+                    </DialogDescription>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onToggleSave(job.id)}
+                    disabled={isSaving}
+                    aria-label="Salvar vaga"
+                >
+                    <Bookmark className={`h-6 w-6 ${isSaved ? 'text-blue-600 fill-current' : 'text-neutral-500'}`} />
+                </Button>
+            </div>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 text-sm text-neutral-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4 text-sm text-neutral-700">
           <div className="flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-neutral-500" />
             <strong>Categoria:</strong> {job.category.name}
           </div>
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-neutral-500" />
-            <strong>Área:</strong> {job.area.name}
-          </div>
-          <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-neutral-500" />
             <strong>Postado por:</strong> {job.author.firstName} {job.author.lastName}
           </div>
-          <div className="flex items-center gap-2">
+           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-neutral-500" />
             <strong>Data:</strong> {formatDate(job.createdAt)}
           </div>
+          {job.company?.websiteUrl && (
+             <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-neutral-500" />
+                <strong>Website:</strong>
+                <a href={job.company.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Visitar
+                </a>
+             </div>
+          )}
         </div>
 
         <div className="mt-6">
@@ -100,6 +136,9 @@ export default function JobDetailModal({ job, isOpen, onOpenChange }: JobDetailM
             </div>
           </div>
         </div>
+        <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

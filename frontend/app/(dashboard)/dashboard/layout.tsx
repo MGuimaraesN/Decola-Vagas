@@ -7,7 +7,8 @@ import {
   LayoutDashboard,
   Briefcase,
   User,
-  Building, // Ícone do Título
+  Building,
+  Bookmark, // Ícone para Vagas Salvas
 } from 'lucide-react';
 import { Toaster } from 'sonner';
 import Sidebar, { NavLink } from '@/components/layout/Sidebar'; // Importando o Sidebar unificado
@@ -16,6 +17,7 @@ import Header from '@/components/layout/Header'; // Importando o Header unificad
 // Links de navegação do Dashboard
 const navLinks: NavLink[] = [
   { href: '/dashboard', label: 'Mural', icon: LayoutDashboard },
+  { href: '/dashboard/saved', label: 'Vagas Salvas', icon: Bookmark },
   { href: '/dashboard/jobs', label: 'Minhas Vagas', icon: Briefcase },
   { href: '/dashboard/profile', label: 'Meu Perfil', icon: User },
 ];
