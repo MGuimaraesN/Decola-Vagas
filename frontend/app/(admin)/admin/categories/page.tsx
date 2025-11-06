@@ -14,6 +14,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 // Definindo a interface para uma Categoria
 interface Category {
@@ -26,7 +45,7 @@ const API_URL = 'http://localhost:5000/categories';
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [categoryNameToDelete, setCategoryNameToDelete] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,12 +97,12 @@ export default function CategoriesPage() {
 
   // Funções do AlertDialog
   const openAlertDialog = (category: Category) => {
-    setCategoryNameToDelete(category);
+    setCategoryToDelete(category);
     setIsAlertDialogOpen(true);
   };
 
   const closeAlertDialog = () => {
-    setCategoryNameToDelete(null);
+    setCategoryToDelete(null);
     setIsAlertDialogOpen(false);
   };
 
@@ -119,10 +138,10 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async () => {
-    if (!token || !categoryNameToDelete) return;
+    if (!token || !categoryToDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/${categoryNameToDelete.id}`, {
+      const res = await fetch(`${API_URL}/${categoryToDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -144,92 +163,80 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Gerenciamento de Categorias</h1>
-      <button
-        onClick={() => openModal()}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded my-4"
-      >
-        Nova Categoria
-      </button>
-      <table className="min-w-full bg-white text-black">
-        <thead>
-          <tr>
-            <th className="py-2">Nome</th>
-            <th className="py-2">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((category) => (
-            <tr key={category.id}>
-              <td className="border px-4 py-2">{category.name}</td>
-              <td className="border px-4 py-2">
-                <button
-                  onClick={() => openModal(category)}
-                  className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded mr-2"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => openAlertDialog(category)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-                >
-                  Excluir
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Gerenciamento de Categorias</h1>
+        <Button onClick={() => openModal()}>Nova Categoria</Button>
+      </div>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map((category) => (
+              <TableRow key={category.id}>
+                <TableCell>{category.name}</TableCell>
+                <TableCell className="text-right space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => openModal(category)}>
+                    Editar
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(category)}>
+                    Excluir
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <h3 className="text-lg font-bold text-black">
-              {selectedCategory ? 'Editar' : 'Nova'} Categoria
-            </h3>
-            <form onSubmit={handleSave}>
-              <div className="mt-4">
-                <label className="block text-black">Nome da Categoria</label>
-                <input
-                  type="text"
-                  value={editCategoryName}
-                  onChange={(e) => setEditCategoryName(e.target.value)}
-                  className="w-full px-3 py-2 text-black border rounded-md"
-                  required
-                />
-              </div>
-              <div className="mt-4">
-                <button
-                  type="submit"
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Salvar
-                </button>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-2"
-                >
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedCategory ? 'Editar' : 'Nova'} Categoria</DialogTitle>
+            <DialogDescription>
+              Preencha os dados para {selectedCategory ? 'atualizar a' : 'criar uma nova'} categoria.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSave}>
+            <div className="py-4">
+              <label htmlFor="categoryName" className="block text-sm font-medium mb-1">
+                Nome da Categoria
+              </label>
+              <Input
+                id="categoryName"
+                type="text"
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
                   Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                </Button>
+              </DialogClose>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a
-              categoria "{categoryNameToDelete?.name}".
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a categoria "{categoryToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeAlertDialog}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

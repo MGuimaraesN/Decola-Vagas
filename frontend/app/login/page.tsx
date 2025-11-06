@@ -2,9 +2,8 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
-// API do backend para login, conforme backend/src/routes/user.routes.ts
 const LOGIN_API_URL = 'http://localhost:5000/auth/login';
 
 export default function LoginPage() {
@@ -12,7 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,19 +22,13 @@ export default function LoginPage() {
       const res = await fetch(LOGIN_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // O controller espera email e password
         body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        // O controller retorna { access_token: token }
-        localStorage.setItem('access_token', data.access_token);
-        
-        // Redireciona para uma página de dashboard (crie-a depois)
-        router.push('/dashboard');
+        login(data.access_token);
       } else {
-        // Captura o erro do backend, ex: "Email ou senha inválidos"
         const data = await res.json();
         setError(data.error || 'Falha no login. Verifique seus dados.');
       }

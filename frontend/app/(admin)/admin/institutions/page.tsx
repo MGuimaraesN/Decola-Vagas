@@ -14,6 +14,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 // Definindo a interface para uma Instituição
 interface Institution {
@@ -26,7 +45,7 @@ const API_URL = 'http://localhost:5000/institutions';
 export default function InstitutionsPage() {
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [selectedInstitution, setSelectedInstitution] = useState<Institution | null>(null);
-  const [institutionNameToDelete, setInstitutionNameToDelete] = useState<Institution | null>(null);
+  const [institutionToDelete, setInstitutionToDelete] = useState<Institution | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -78,12 +97,12 @@ export default function InstitutionsPage() {
 
   // Funções do AlertDialog
   const openAlertDialog = (institution: Institution) => {
-    setInstitutionNameToDelete(institution);
+    setInstitutionToDelete(institution);
     setIsAlertDialogOpen(true);
   };
 
   const closeAlertDialog = () => {
-    setInstitutionNameToDelete(null);
+    setInstitutionToDelete(null);
     setIsAlertDialogOpen(false);
   };
 
@@ -119,10 +138,10 @@ export default function InstitutionsPage() {
   };
 
   const handleDelete = async () => {
-    if (!token || !institutionNameToDelete) return;
+    if (!token || !institutionToDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/${institutionNameToDelete.id}`, {
+      const res = await fetch(`${API_URL}/${institutionToDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -144,92 +163,80 @@ export default function InstitutionsPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Gerenciamento de Instituições</h1>
-      <button
-        onClick={() => openModal()}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded my-4"
-      >
-        Nova Instituição
-      </button>
-      <table className="min-w-full bg-white text-black">
-        <thead>
-          <tr>
-            <th className="py-2">Nome</th>
-            <th className="py-2">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {institutions.map((institution) => (
-            <tr key={institution.id}>
-              <td className="border px-4 py-2">{institution.name}</td>
-              <td className="border px-4 py-2">
-                <button
-                  onClick={() => openModal(institution)}
-                  className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded mr-2"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => openAlertDialog(institution)}
-                  className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-                >
-                  Excluir
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Gerenciamento de Instituições</h1>
+        <Button onClick={() => openModal()}>Nova Instituição</Button>
+      </div>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {institutions.map((institution) => (
+              <TableRow key={institution.id}>
+                <TableCell>{institution.name}</TableCell>
+                <TableCell className="text-right space-x-2">
+                  <Button variant="outline" size="sm" onClick={() => openModal(institution)}>
+                    Editar
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(institution)}>
+                    Excluir
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <h3 className="text-lg font-bold text-black">
-              {selectedInstitution ? 'Editar' : 'Nova'} Instituição
-            </h3>
-            <form onSubmit={handleSave}>
-              <div className="mt-4">
-                <label className="block text-black">Nome da Instituição</label>
-                <input
-                  type="text"
-                  value={editInstitutionName}
-                  onChange={(e) => setEditInstitutionName(e.target.value)}
-                  className="w-full px-3 py-2 text-black border rounded-md"
-                  required
-                />
-              </div>
-              <div className="mt-4">
-                <button
-                  type="submit"
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Salvar
-                </button>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-2"
-                >
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedInstitution ? 'Editar' : 'Nova'} Instituição</DialogTitle>
+            <DialogDescription>
+              Preencha os dados para {selectedInstitution ? 'atualizar a' : 'criar uma nova'} instituição.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSave}>
+            <div className="py-4">
+              <label htmlFor="institutionName" className="block text-sm font-medium mb-1">
+                Nome da Instituição
+              </label>
+              <Input
+                id="institutionName"
+                type="text"
+                value={editInstitutionName}
+                onChange={(e) => setEditInstitutionName(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
                   Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                </Button>
+              </DialogClose>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a
-              instituição "{institutionNameToDelete?.name}".
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a instituição "{institutionToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeAlertDialog}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
