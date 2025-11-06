@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, ReactNode } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../../context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import InstitutionSwitcher from '../../components/InstitutionSwitcher'; // Importando o componente
+import InstitutionSwitcher from '../../../components/InstitutionSwitcher'; // Importando o componente
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();

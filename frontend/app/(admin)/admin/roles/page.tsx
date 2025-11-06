@@ -1,4 +1,4 @@
-// Salve em: frontend/app/(admin)/admin/areas/page.tsx
+// Salve em: frontend/app/(admin)/admin/roles/page.tsx
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -15,31 +15,31 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-// Definindo a interface para uma Área
-interface Area {
+// Definindo a interface para um Cargo
+interface Role {
   id: number;
   name: string;
 }
 
-const API_URL = 'http://localhost:5000/areas';
+const API_URL = 'http://localhost:5000/roles';
 
-export default function AreasPage() {
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
-  const [areaNameToDelete, setAreaNameToDelete] = useState<Area | null>(null);
+export default function RolesPage() {
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [roleNameToDelete, setRoleNameToDelete] = useState<Role | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [editAreaName, setEditAreaName] = useState('');
+  const [editRoleName, setEditRoleName] = useState('');
 
   const { token } = useAuth();
 
   // Função para buscar os dados
   const fetchData = async () => {
     if (!token) {
-      setIsLoading(false);
-      return;
-    }
+        setIsLoading(false);
+        return;
+    };
     setIsLoading(true);
     try {
       const res = await fetch(API_URL, {
@@ -47,12 +47,12 @@ export default function AreasPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAreas(data);
+        setRoles(data);
       } else {
-        toast.error('Falha ao buscar áreas.');
+        toast.error('Falha ao buscar cargos.');
       }
     } catch (error) {
-      toast.error('Erro de rede ao buscar áreas.');
+      toast.error('Erro de rede ao buscar cargos.');
     } finally {
       setIsLoading(false);
     }
@@ -64,26 +64,26 @@ export default function AreasPage() {
   }, [token]);
 
   // Funções do Modal
-  const openModal = (area: Area | null = null) => {
-    setSelectedArea(area);
-    setEditAreaName(area ? area.name : '');
+  const openModal = (role: Role | null = null) => {
+    setSelectedRole(role);
+    setEditRoleName(role ? role.name : '');
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedArea(null);
-    setEditAreaName('');
+    setSelectedRole(null);
+    setEditRoleName('');
   };
 
   // Funções do AlertDialog
-  const openAlertDialog = (area: Area) => {
-    setAreaNameToDelete(area);
+  const openAlertDialog = (role: Role) => {
+    setRoleNameToDelete(role);
     setIsAlertDialogOpen(true);
   };
 
   const closeAlertDialog = () => {
-    setAreaNameToDelete(null);
+    setRoleNameToDelete(null);
     setIsAlertDialogOpen(false);
   };
 
@@ -92,8 +92,8 @@ export default function AreasPage() {
     e.preventDefault();
     if (!token) return;
 
-    const url = selectedArea ? `${API_URL}/${selectedArea.id}` : API_URL;
-    const method = selectedArea ? 'PUT' : 'POST';
+    const url = selectedRole ? `${API_URL}/${selectedRole.id}` : API_URL;
+    const method = selectedRole ? 'PUT' : 'POST';
 
     try {
       const res = await fetch(url, {
@@ -102,40 +102,40 @@ export default function AreasPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: editAreaName }),
+        body: JSON.stringify({ name: editRoleName }),
       });
 
       if (res.ok) {
-        toast.success(`Área ${selectedArea ? 'atualizada' : 'criada'} com sucesso!`);
+        toast.success(`Cargo ${selectedRole ? 'atualizado' : 'criado'} com sucesso!`);
         closeModal();
         fetchData(); // Re-fetch
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Falha ao salvar área.');
+        toast.error(data.error || 'Falha ao salvar cargo.');
       }
     } catch (error) {
-      toast.error('Erro de rede ao salvar área.');
+      toast.error('Erro de rede ao salvar cargo.');
     }
   };
 
   const handleDelete = async () => {
-    if (!token || !areaNameToDelete) return;
+    if (!token || !roleNameToDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/${areaNameToDelete.id}`, {
+      const res = await fetch(`${API_URL}/${roleNameToDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
-        toast.success('Área excluída com sucesso!');
+        toast.success('Cargo excluído com sucesso!');
         closeAlertDialog();
         fetchData(); // Re-fetch
       } else {
-        toast.error('Falha ao excluir área.');
+        toast.error('Falha ao excluir cargo.');
       }
     } catch (error) {
-      toast.error('Erro de rede ao excluir área.');
+      toast.error('Erro de rede ao excluir cargo.');
     }
   };
 
@@ -145,12 +145,12 @@ export default function AreasPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Gerenciamento de Áreas</h1>
+      <h1 className="text-2xl font-bold">Gerenciamento de Cargos</h1>
       <button
         onClick={() => openModal()}
         className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded my-4"
       >
-        Nova Área
+        Novo Cargo
       </button>
       <table className="min-w-full bg-white text-black">
         <thead>
@@ -160,18 +160,18 @@ export default function AreasPage() {
           </tr>
         </thead>
         <tbody>
-          {areas.map((area) => (
-            <tr key={area.id}>
-              <td className="border px-4 py-2">{area.name}</td>
+          {roles.map((role) => (
+            <tr key={role.id}>
+              <td className="border px-4 py-2">{role.name}</td>
               <td className="border px-4 py-2">
                 <button
-                  onClick={() => openModal(area)}
+                  onClick={() => openModal(role)}
                   className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded mr-2"
                 >
                   Editar
                 </button>
                 <button
-                  onClick={() => openAlertDialog(area)}
+                  onClick={() => openAlertDialog(role)}
                   className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
                 >
                   Excluir
@@ -186,15 +186,15 @@ export default function AreasPage() {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <h3 className="text-lg font-bold text-black">
-              {selectedArea ? 'Editar' : 'Nova'} Área
+              {selectedRole ? 'Editar' : 'Novo'} Cargo
             </h3>
             <form onSubmit={handleSave}>
               <div className="mt-4">
-                <label className="block text-black">Nome da Área</label>
+                <label className="block text-black">Nome do Cargo</label>
                 <input
                   type="text"
-                  value={editAreaName}
-                  onChange={(e) => setEditAreaName(e.target.value)}
+                  value={editRoleName}
+                  onChange={(e) => setEditRoleName(e.target.value)}
                   className="w-full px-3 py-2 text-black border rounded-md"
                   required
                 />
@@ -224,8 +224,8 @@ export default function AreasPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a
-              área "{areaNameToDelete?.name}".
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o
+              cargo "{roleNameToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -35,10 +35,19 @@ const AdminAuthGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+import AdminSidebar from './components/AdminSidebar';
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminAuthGuard>{children}</AdminAuthGuard>;
+  return (
+    <AdminAuthGuard>
+      <div className="flex min-h-screen">
+        <AdminSidebar />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
+    </AdminAuthGuard>
+  );
 }

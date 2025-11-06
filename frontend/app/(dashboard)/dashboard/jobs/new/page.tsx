@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../context/AuthContext';
+import { useAuth } from '../../../../../context/AuthContext';
 
 export default function NewJobPage() {
   const [title, setTitle] = useState('');

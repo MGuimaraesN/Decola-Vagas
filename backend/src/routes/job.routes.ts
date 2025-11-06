@@ -32,6 +32,12 @@ jobRoutes.get(
     '/admin', 
     authMiddleware.auth,
     rbacMiddleware.checkRole(['admin', 'superadmin']),
-    jobController.getAllJobs);
+    jobController.getAllJobs
+);
+jobRoutes.get(
+    '/:id',
+    authMiddleware.auth,
+    jobController.getById
+);
 
 export { jobRoutes };

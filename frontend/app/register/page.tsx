@@ -1,20 +1,43 @@
 // Salve em: frontend/app/register/page.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 // API do backend para registro, conforme backend/src/routes/user.routes.ts
 const REGISTER_API_URL = 'http://localhost:5000/auth/register';
+const INSTITUTIONS_API_URL = 'http://localhost:5000/institutions/public';
+
+interface Institution {
+  id: number;
+  name: string;
+}
 
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [institutionId, setInstitutionId] = useState('');
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchInstitutions = async () => {
+      try {
+        const res = await fetch(INSTITUTIONS_API_URL);
+        if (res.ok) {
+          const data = await res.json();
+          setInstitutions(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch institutions', error);
+      }
+    };
+    fetchInstitutions();
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,7 +49,7 @@ export default function RegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // O controller espera os campos do schema.prisma
-        body: JSON.stringify({ firstName, lastName, email, password }),
+        body: JSON.stringify({ firstName, lastName, email, password, institutionId: parseInt(institutionId) }),
       });
 
       if (res.ok) {
@@ -126,6 +149,29 @@ export default function RegisterPage() {
               minLength={6} // É uma boa prática
               className="mt-1 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black"
             />
+          </div>
+
+          <div>
+            <label
+              htmlFor="institution"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Instituição
+            </label>
+            <select
+              id="institution"
+              value={institutionId}
+              onChange={(e) => setInstitutionId(e.target.value)}
+              required
+              className="mt-1 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black"
+            >
+              <option value="" disabled>Selecione sua instituição</option>
+              {institutions.map((institution) => (
+                <option key={institution.id} value={institution.id}>
+                  {institution.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (

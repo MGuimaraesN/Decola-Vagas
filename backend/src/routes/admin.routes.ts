@@ -9,6 +9,12 @@ const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
 adminRoutes.get(
+  '/stats',
+  authMiddleware.auth,
+  rbacMiddleware.checkRole(['admin', 'superadmin']),
+  adminController.getStats
+);
+adminRoutes.get(
   '/users',
   authMiddleware.auth,
   rbacMiddleware.checkRole(['admin', 'superadmin']),

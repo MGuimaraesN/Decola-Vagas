@@ -2,6 +2,23 @@ import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
 
 export class AdminController {
+
+  async getStats(req: Request, res: Response) {
+    try {
+      const userCount = await prisma.user.count();
+      const institutionCount = await prisma.institution.count();
+      const jobCount = await prisma.job.count();
+
+      res.json({
+        userCount,
+        institutionCount,
+        jobCount,
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao buscar estatísticas.' });
+    }
+  }
+  
   async getAllUsers(req: Request, res: Response) {
     try {
       const users = await prisma.user.findMany({

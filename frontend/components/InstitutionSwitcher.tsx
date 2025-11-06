@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ChangeEvent } from 'react';
 
 const InstitutionSwitcher = () => {
-  const { user, activeInstitutionId, fetchUserProfile } = useAuth();
+  const { user, activeInstitutionId, login } = useAuth();
 
   const handleSwitch = async (e: ChangeEvent<HTMLSelectElement>) => {
     const newInstitutionId = parseInt(e.target.value, 10);
@@ -25,9 +25,10 @@ const InstitutionSwitcher = () => {
       });
 
       if (res.ok) {
-        // Recarrega os dados do usuário para obter a nova instituição ativa
-        await fetchUserProfile();
-        // A página será re-renderizada automaticamente devido à atualização do contexto
+        const data = await res.json();
+        if (data.access_token) {
+          login(data.access_token);
+        }
       } else {
         console.error('Failed to switch institution');
       }

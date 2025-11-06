@@ -7,11 +7,11 @@ export class UserController {
 
     async register(req: Request, res: Response) {
         try {
-            const {firstName, lastName, email, password} = req.body;
+            const {firstName, lastName, email, password, institutionId} = req.body;
 
-            if (!email || !password) {
+            if (!email || !password || !institutionId) {
                 return res.status(400).json(
-                    {error: 'Email e senha são obrigatórios'}
+                    {error: 'Email, senha e instituição são obrigatórios'}
                 )};
 
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,6 +35,24 @@ export class UserController {
                     ip: ipUser
                 }});
 
+            const userRole = await prisma.role.findUnique({ where: { name: 'user' } });
+            if (!userRole) {
+                return res.status(500).json({ error: 'Cargo "user" não encontrado' });
+            }
+
+            await prisma.userInstitutionRole.create({
+                data: {
+                    userId: newUser.id,
+                    institutionId: institutionId,
+                    roleId: userRole.id
+                }
+            });
+
+            const updatedUser = await prisma.user.update({
+                where: { id: newUser.id },
+                data: { activeInstitutionId: institutionId }
+            });
+
             const secret = process.env.JWT_SECRET;
 
             if (!secret) {
@@ -43,10 +61,11 @@ export class UserController {
             }
 
             const payload = {
-                userId: newUser.id,
-                firstName: newUser.firstName,
-                lastName: newUser.lastName,
-                email: newUser.email
+                userId: updatedUser.id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                activeInstitutionId: updatedUser.activeInstitutionId
             };
 
             const token = jwt.sign(payload, secret, { expiresIn: '8h' });
@@ -205,12 +224,30 @@ export class UserController {
                 return res.status(403).json({ error: 'Usuário não pertence a esta instituição' });
             }
 
-            await prisma.user.update({
+            const updatedUser = await prisma.user.update({
                 where: { email: userEmail },
                 data: { activeInstitutionId: institutionId }
             });
 
-            res.status(200).json({ message: 'Instituição alterada com sucesso' });
+            const secret = process.env.JWT_SECRET;
+            if (!secret) {
+                throw new Error('Secret não está definido!');
+            }
+
+            const payload = {
+                userId: updatedUser.id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                activeInstitutionId: updatedUser.activeInstitutionId
+            };
+
+            const token = jwt.sign(payload, secret, { expiresIn: '8h' });
+
+            res.status(200).json({
+                message: 'Instituição alterada com sucesso',
+                access_token: token
+            });
         } catch (error) {
             console.error('Erro ao trocar de instituição:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
