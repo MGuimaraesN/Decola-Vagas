@@ -1,10 +1,13 @@
 // Salve em: frontend/app/login/page.tsx
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Building, LogIn } from 'lucide-react';
+import { Toaster, toast } from 'sonner';
 
-// API do backend para login, conforme backend/src/routes/user.routes.ts
 const LOGIN_API_URL = 'http://localhost:5000/auth/login';
 
 export default function LoginPage() {
@@ -12,7 +15,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { login, user, loading } = useAuth();
   const router = useRouter();
+
+  // Redireciona para o dashboard se o usuário já estiver logado
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,99 +34,155 @@ export default function LoginPage() {
       const res = await fetch(LOGIN_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // O controller espera email e password
         body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        // O controller retorna { access_token: token }
-        localStorage.setItem('access_token', data.access_token);
-        
-        // Redireciona para uma página de dashboard (crie-a depois)
-        router.push('/dashboard');
+        login(data.access_token);
+        toast.success('Login realizado com sucesso!');
+        // O AuthProvider irá redirecionar
       } else {
-        // Captura o erro do backend, ex: "Email ou senha inválidos"
         const data = await res.json();
-        setError(data.error || 'Falha no login. Verifique seus dados.');
+        const errorMessage =
+          data.error || 'Falha no login. Verifique seus dados.';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error(error);
-      setError('Erro de rede. Não foi possível conectar ao servidor.');
+      const networkError = 'Erro de rede. Não foi possível conectar ao servidor.';
+      setError(networkError);
+      toast.error(networkError);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-8">
-      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
-        <h1 className="mb-6 text-center text-3xl font-bold text-gray-900">
-          Entrar
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Senha
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black"
-            />
-          </div>
-
-          {error && (
-            <p className="rounded-md bg-red-50 p-3 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full rounded-md bg-blue-600 px-4 py-3 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isLoading ? 'Entrando...' : 'Entrar'}
-            </button>
-          </div>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Não tem uma conta?{' '}
-          <a
-            href="/register"
-            className="font-medium text-blue-600 hover:underline"
-          >
-            Cadastre-se
-          </a>
-        </p>
+  // Não renderiza a página de login se estiver carregando ou se o usuário estiver logado
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
+        <p className="text-neutral-600">Carregando...</p>
       </div>
-    </main>
+    );
+  }
+
+  return (
+    <>
+      <Toaster richColors />
+      <div className="flex min-h-screen w-full bg-neutral-50">
+        {/* Lado Esquerdo (Branding) */}
+        <div className="hidden min-h-screen w-1/2 flex-col justify-between bg-neutral-900 p-10 text-white lg:flex">
+          <Link href="/" className="flex items-center gap-2">
+            <Building className="h-6 w-6 text-blue-400" />
+            <span className="text-xl font-bold">Decola Vagas</span>
+          </Link>
+          <div>
+            <h2 className="text-3xl font-bold leading-tight">
+              Sua jornada profissional começa aqui.
+            </h2>
+            <p className="mt-4 text-lg text-neutral-400">
+              Acesse as melhores oportunidades da sua instituição.
+            </p>
+          </div>
+          <div className="text-sm text-neutral-500">
+            &copy; {new Date().getFullYear()} Decola Vagas
+          </div>
+        </div>
+
+        {/* Lado Direito (Formulário) */}
+        <div className="flex w-full items-center justify-center p-8 lg:w-1/2">
+          <div className="w-full max-w-md">
+            <Link
+              href="/"
+              className="mb-8 flex items-center justify-center gap-2 lg:hidden"
+            >
+              <Building className="h-7 w-7 text-blue-600" />
+              <span className="text-2xl font-bold text-neutral-900">
+                Decola Vagas
+              </span>
+            </Link>
+
+            <h1 className="mb-2 text-center text-3xl font-bold text-neutral-900 lg:text-left">
+              Entrar na sua conta
+            </h1>
+            <p className="mb-6 text-center text-neutral-600 lg:text-left">
+              Bem-vindo de volta!
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-neutral-700"
+                >
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  className="mt-1 block w-full rounded-md border border-neutral-300 bg-white p-3 text-neutral-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-neutral-700"
+                >
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="mt-1 block w-full rounded-md border border-neutral-300 bg-white p-3 text-neutral-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+
+              {error && (
+                <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    'Entrando...'
+                  ) : (
+                    <>
+                      <LogIn className="h-5 w-5" />
+                      Entrar
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            <p className="mt-8 text-center text-sm text-neutral-600">
+              Não tem uma conta?{' '}
+              <Link
+                href="/register"
+                className="font-semibold text-blue-600 hover:underline"
+              >
+                Cadastre-se
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

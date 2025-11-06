@@ -8,6 +8,10 @@ const institutionController = new InstitutionController();
 const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
+institutionRoutes.get(
+    '/public',
+    institutionController.getAll
+);
 institutionRoutes.post(
     '/',
     authMiddleware.auth,
@@ -37,11 +41,6 @@ institutionRoutes.delete(
     authMiddleware.auth,
     rbacMiddleware.checkRole(['superadmin']),
     institutionController.delete
-);
-
-institutionRoutes.get(
-    '/public',
-    institutionController.getAll
 );
 
 export { institutionRoutes };

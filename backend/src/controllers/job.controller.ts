@@ -4,6 +4,7 @@ import { prisma } from '../database/prisma.js';
 export class JobController {
 
     async create(req: Request, res: Response) {
+        // Agora 'status' é pego do body, com 'rascunho' como padrão
         const { title, description, areaId, categoryId, status, email, telephone } = req.body;
         const authorId = (req as any).user?.userId;
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
@@ -16,8 +17,8 @@ export class JobController {
             return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
         }
 
-        if (!title || !description || !areaId || !categoryId || !status || !email || !telephone) {
-            return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+        if (!title || !description || !areaId || !categoryId || !email || !telephone) {
+            return res.status(400).json({ error: 'Todos os campos (exceto status) são obrigatórios.' });
         }
 
         try {
@@ -27,7 +28,7 @@ export class JobController {
                     description: description,
                     areaId: areaId,
                     categoryId: categoryId,
-                    status: status,
+                    status: status || 'rascunho', // Se nenhum status for enviado, salva como 'rascunho'
                     email: email,
                     telephone: telephone,
                     authorId: authorId,
@@ -44,6 +45,7 @@ export class JobController {
 
     async edit(req: Request, res: Response) {
         const { id } = req.params;
+        // Adicionado 'status' aqui também
         const { title, description, areaId, categoryId, status, email, telephone } = req.body;
         const authorId = (req as any).user?.userId
 
@@ -81,7 +83,7 @@ export class JobController {
                     description: description,
                     areaId: areaId,
                     categoryId: categoryId,
-                    status: status,
+                    status: status, // Permite atualização de status
                     email: email,
                     telephone: telephone,
                 },
@@ -117,6 +119,7 @@ export class JobController {
                 return res.status(404).json({ error: 'Vaga não encontrada' });
             }
 
+            // TODO: Adicionar lógica para admin/superadmin poder deletar
             if (job.authorId !== authorId) {
                 return res.status(403).json({ error: 'Você não tem permissão para excluir esta vaga' });
             }
@@ -153,6 +156,9 @@ export class JobController {
                     },
                     area: true,
                     category: true,
+                },
+                orderBy: {
+                    createdAt: 'desc' // Ordena por mais recente
                 }
             });
             res.status(200).json(jobs);
@@ -162,8 +168,38 @@ export class JobController {
         }
     }
 
+    // --- NOVA FUNÇÃO ---
+    async getPublicJobs(req: Request, res: Response) {
+        try {
+            const jobs = await prisma.job.findMany({
+                where: {
+                    OR: [
+                        { status: 'published' },
+                        { status: 'open' }
+                    ]
+                },
+                include: {
+                    area: true,
+                    category: true,
+                    institution: {
+                        select: { name: true }
+                    }
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: 20 // Limita a 20 vagas
+            });
+            res.status(200).json(jobs);
+        } catch (error) {
+            console.error('Erro ao buscar vagas públicas:', error);
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+
     async getById(req: Request, res: Response) {
         const { id } = req.params;
+        const authorId = (req as any).user?.userId;
 
         if (!id) {
             return res.status(400).json({ error: 'O ID da vaga é obrigatório' });
@@ -172,11 +208,21 @@ export class JobController {
         try {
             const job = await prisma.job.findUnique({
                 where: { id: parseInt(id) },
+                include: {
+                    area: true,
+                    category: true,
+                    author: {
+                        select: { firstName: true, lastName: true }
+                    }
+                }
             });
 
             if (!job) {
-                return res.status(404).json({ error: 'Vaga não encontrado' });
+                return res.status(404).json({ error: 'Vaga não encontrada' });
             }
+
+            // TODO: Segurança - Verificar se o usuário (se não for admin) pertence à instituição da vaga
+            // if (job.authorId !== authorId && !isAdmin) { ... }
 
             res.status(200).json(job);
         } catch (error) {
@@ -195,6 +241,9 @@ export class JobController {
                     area: true,
                     category: true,
                     institution: true,
+                },
+                orderBy: {
+                    createdAt: 'desc'
                 }
             });
             res.status(200).json(jobs);

@@ -1,29 +1,25 @@
-// Salve em: frontend/app/(admin)/admin/components/AdminSidebar.tsx
+// NOVO ARQUIVO: frontend/components/layout/Sidebar.tsx
 'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  Users,
-  Building,
-  ClipboardList,
-  Network,
-  Shield,
-  LogOut,
-  LayoutDashboard,
-} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { Building, LogOut, type LucideIcon } from 'lucide-react';
 
-const sidebarLinks = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'Usuários', icon: Users },
-  { href: '/admin/institutions', label: 'Instituições', icon: Building },
-  { href: '/admin/categories', label: 'Categorias', icon: ClipboardList },
-  { href: '/admin/areas', label: 'Áreas', icon: Network },
-  { href: '/admin/roles', label: 'Cargos', icon: Shield },
-];
+// Define o tipo para os links
+export interface NavLink {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
 
-export default function AdminSidebar() {
+interface SidebarProps {
+  title: string;
+  icon: LucideIcon;
+  navLinks: NavLink[];
+}
+
+export default function Sidebar({ title, icon: TitleIcon, navLinks }: SidebarProps) {
   const pathname = usePathname();
   const { logout } = useAuth();
   const router = useRouter();
@@ -34,13 +30,13 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-neutral-900 text-white p-4 flex flex-col">
+    <aside className="w-64 flex-shrink-0 bg-neutral-900 text-white p-4 flex flex-col h-screen sticky top-0">
       <div className="flex items-center gap-2 px-3 py-2 mb-6">
-        <Shield className="h-6 w-6 text-blue-400" />
-        <h1 className="text-xl font-bold">Decola Admin</h1>
+        <TitleIcon className="h-6 w-6 text-blue-400" />
+        <h1 className="text-xl font-bold">{title}</h1>
       </div>
-      <nav className="flex-1 space-y-2">
-        {sidebarLinks.map((link) => {
+      <nav className="flex-1 space-y-2 overflow-y-auto">
+        {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
             <Link

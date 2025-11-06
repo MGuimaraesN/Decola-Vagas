@@ -8,6 +8,13 @@ const jobController = new JobController();
 const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
+// --- NOVA ROTA PÚBLICA ---
+jobRoutes.get(
+    '/public',
+    jobController.getPublicJobs
+);
+// --- FIM DA NOVA ROTA ---
+
 jobRoutes.post(
     '/create',
     authMiddleware.auth,

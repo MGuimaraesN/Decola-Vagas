@@ -3,6 +3,26 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../../context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+
+// Interfaces
+interface Category {
+  id: number;
+  name: string;
+}
+interface Area {
+  id: number;
+  name: string;
+}
 
 export default function NewJobPage() {
   const [title, setTitle] = useState('');
@@ -11,9 +31,11 @@ export default function NewJobPage() {
   const [telephone, setTelephone] = useState('');
   const [areaId, setAreaId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [categories, setCategories] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState('rascunho'); // NOVO: Estado para o status
+  
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { token } = useAuth();
   const router = useRouter();
@@ -27,12 +49,10 @@ export default function NewJobPage() {
           fetch('http://localhost:5000/categories', { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch('http://localhost:5000/areas', { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
-        const catData = await catRes.json();
-        const areaData = await areaRes.json();
-        setCategories(catData);
-        setAreas(areaData);
+        if (catRes.ok) setCategories(await catRes.json());
+        if (areaRes.ok) setAreas(await areaRes.json());
       } catch (err) {
-        setError('Falha ao carregar dados adicionais.');
+        toast.error('Falha ao carregar dados adicionais.');
       }
     };
     fetchData();
@@ -41,9 +61,10 @@ export default function NewJobPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!token) {
-      setError("Autenticação necessária.");
+      toast.error("Autenticação necessária.");
       return;
     }
+    setIsLoading(true);
 
     try {
       const res = await fetch('http://localhost:5000/jobs/create', {
@@ -59,65 +80,98 @@ export default function NewJobPage() {
           telephone,
           areaId: parseInt(areaId),
           categoryId: parseInt(categoryId),
-          status: 'open' // Status padrão
+          status: status // NOVO: Enviando o status
         }),
       });
 
       if (res.ok) {
+        toast.success('Vaga criada com sucesso!');
         router.push('/dashboard/jobs');
       } else {
         const data = await res.json();
-        setError(data.error || 'Falha ao criar vaga.');
+        toast.error(data.error || 'Falha ao criar vaga.');
       }
     } catch (err) {
-      setError('Erro de rede.');
+      toast.error('Erro de rede.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Criar Nova Vaga</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md">
-        {/* Title */}
-        <div className="mb-4">
-          <label htmlFor="title" className="block text-gray-700">Título</label>
-          <input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} className="w-full p-2 border rounded" required />
+    <div className="max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-neutral-900">Criar Nova Vaga</h1>
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6">
+        
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">Título da Vaga</label>
+          <Input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} required />
         </div>
-        {/* Description */}
-        <div className="mb-4">
-          <label htmlFor="description" className="block text-gray-700">Descrição</label>
-          <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full p-2 border rounded" required />
-        </div>
-        {/* Email */}
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-gray-700">Email</label>
-          <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-2 border rounded" required />
-        </div>
-        {/* Telephone */}
-        <div className="mb-4">
-          <label htmlFor="telephone" className="block text-gray-700">Telefone</label>
-          <input type="tel" id="telephone" value={telephone} onChange={e => setTelephone(e.target.value)} className="w-full p-2 border rounded" required />
-        </div>
-        {/* Area */}
-        <div className="mb-4">
-          <label htmlFor="areaId" className="block text-gray-700">Área</label>
-          <select id="areaId" value={areaId} onChange={e => setAreaId(e.target.value)} className="w-full p-2 border rounded" required>
-            <option value="">Selecione uma área</option>
-            {areas.map((area: any) => <option key={area.id} value={area.id}>{area.name}</option>)}
-          </select>
-        </div>
-        {/* Category */}
-        <div className="mb-4">
-          <label htmlFor="categoryId" className="block text-gray-700">Categoria</label>
-          <select id="categoryId" value={categoryId} onChange={e => setCategoryId(e.target.value)} className="w-full p-2 border rounded" required>
-            <option value="">Selecione uma categoria</option>
-            {categories.map((cat: any) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-          </select>
+        
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição Completa</label>
+          <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full p-2 border border-input rounded-md min-h-[150px] text-sm" required />
         </div>
 
-        {error && <p className="text-red-500">{error}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">Email de Contato</label>
+            <Input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          </div>
+          <div>
+            <label htmlFor="telephone" className="block text-sm font-medium text-neutral-700 mb-1">Telefone de Contato</label>
+            <Input type="tel" id="telephone" value={telephone} onChange={e => setTelephone(e.target.value)} required />
+          </div>
+        </div>
 
-        <button type="submit" className="bg-blue-500 text-white p-2 rounded">Criar Vaga</button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label htmlFor="areaId" className="block text-sm font-medium text-neutral-700 mb-1">Área</label>
+            <Select value={areaId} onValueChange={setAreaId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma área" />
+              </SelectTrigger>
+              <SelectContent>
+                {areas.map((area) => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor="categoryId" className="block text-sm font-medium text-neutral-700 mb-1">Categoria</label>
+            <Select value={categoryId} onValueChange={setCategoryId} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* --- NOVO CAMPO DE STATUS --- */}
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
+            <Select value={status} onValueChange={setStatus} required>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rascunho">Rascunho (Privado)</SelectItem>
+                <SelectItem value="published">Publicado (Público)</SelectItem>
+                <SelectItem value="closed">Fechado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {/* --- FIM DO NOVO CAMPO --- */}
+        </div>
+
+        <div className="flex justify-end gap-4 pt-4">
+           <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
+            Cancelar
+           </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Salvando...' : 'Criar Vaga'}
+          </Button>
+        </div>
       </form>
     </div>
   );

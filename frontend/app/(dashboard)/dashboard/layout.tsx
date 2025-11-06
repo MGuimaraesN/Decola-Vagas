@@ -1,76 +1,60 @@
 "use client";
 
 import { useEffect, ReactNode } from 'react';
-import { useAuth } from '../../../context/AuthContext';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import InstitutionSwitcher from '../../../components/InstitutionSwitcher'; // Importando o componente
+import { useAuth } from '@/context/AuthContext';
+import { useRouter, usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Briefcase,
+  User,
+  Building, // Ícone do Título
+} from 'lucide-react';
+import { Toaster } from 'sonner';
+import Sidebar, { NavLink } from '@/components/layout/Sidebar'; // Importando o Sidebar unificado
+import Header from '@/components/layout/Header'; // Importando o Header unificado
+
+// Links de navegação do Dashboard
+const navLinks: NavLink[] = [
+  { href: '/dashboard', label: 'Mural', icon: LayoutDashboard },
+  { href: '/dashboard/jobs', label: 'Minhas Vagas', icon: Briefcase },
+  { href: '/dashboard/profile', label: 'Meu Perfil', icon: User },
+];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('access_token');
-    if (!storedToken) {
+    if (!loading && !user) {
       router.push('/login');
     }
-  }, [router]);
+  }, [user, loading, router]);
 
   // Mostra um loader enquanto o usuário está sendo carregado
-  if (!user) {
+  if (loading || !user) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-neutral-50">
         Carregando...
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-gray-800 text-white p-4 flex flex-col">
-        <h1 className="text-2xl font-bold mb-8">Decola Vagas</h1>
-        <nav className="flex-1">
-          <ul>
-            <li className="mb-4">
-              <Link href="/dashboard" className="hover:text-blue-300">
-                Mural
-              </Link>
-            </li>
-            <li className="mb-4">
-              <Link href="/dashboard/jobs" className="hover:text-blue-300">
-                Minhas Vagas
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/profile" className="hover:text-blue-300">
-                Meu Perfil
-              </Link>
-            </li>
-          </ul>
-        </nav>
-        <div className="mt-auto">
-          <button
-            onClick={logout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Sair
-          </button>
-        </div>
-      </aside>
+    <div className="flex h-screen w-full bg-white">
+      {/* Sidebar Unificada */}
+      <Sidebar 
+        title="Decola Vagas" 
+        icon={Building} 
+        navLinks={navLinks} 
+      />
 
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white shadow p-4 flex justify-between items-center">
-          <InstitutionSwitcher /> {/* Componente integrado aqui */}
-          <div>
-            <span>Olá, {user.firstName}</span>
-          </div>
-        </header>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header Unificado */}
+        <Header />
 
         {/* Content */}
-        <main className="flex-1 p-8 overflow-y-auto  text-black">
+        <main className="flex-1 overflow-y-auto bg-neutral-50 p-6 md:p-10">
+          <Toaster richColors />
           {children}
         </main>
       </div>

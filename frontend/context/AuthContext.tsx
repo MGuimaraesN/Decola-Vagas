@@ -11,12 +11,14 @@ interface User {
   email: string;
   institutions: any[]; // Defina uma interface mais específica se necessário
   activeInstitutionId: number | null;
+  role: { name: string };
 }
 
 // Define a interface para o contexto de autenticação
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  loading: boolean;
   activeInstitutionId: number | null;
   login: (token: string) => void;
   logout: () => void;
@@ -41,12 +43,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [activeInstitutionId, setActiveInstitutionId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const storedToken = localStorage.getItem('access_token');
     if (storedToken) {
       setToken(storedToken);
+    } else {
+      setLoading(false);
     }
   }, []);
 
@@ -54,9 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedToken = localStorage.getItem('access_token');
     if (!storedToken) {
       logout();
+      setLoading(false);
       return;
     }
 
+    setLoading(true);
     try {
       const res = await fetch('http://localhost:5000/auth/profile', {
         headers: {
@@ -68,12 +75,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = await res.json();
         setUser(userData);
         setActiveInstitutionId(userData.activeInstitutionId);
+        if (userData.institutions[0].role.name === 'admin' || userData.institutions[0].role.name === 'superadmin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         logout();
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
       logout();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,7 +100,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = (newToken: string) => {
     localStorage.setItem('access_token', newToken);
     setToken(newToken);
-    router.push('/dashboard');
   };
 
   const logout = () => {
@@ -100,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     user,
     token,
+    loading,
     activeInstitutionId,
     login,
     logout,

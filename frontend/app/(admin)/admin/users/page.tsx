@@ -4,6 +4,31 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '@/components/ui/table';
 
 // Interfaces
 interface Role {
@@ -98,14 +123,24 @@ export default function UsersPage() {
 
       if (res.ok) {
         toast.success('Cargo atribuído com sucesso!');
-        fetchData(); // Refresh all data
+
+        // Fetch updated user data
+        const updatedUserRes = await fetch(`${API_BASE_URL}/admin/users/${selectedUser.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if(updatedUserRes.ok) {
+          const updatedUser = await updatedUserRes.json();
+          setSelectedUser(updatedUser); // Update the selected user state
+
+          // Update the user list state
+          setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+        }
+
         // Reset form
         setAssignInstitutionId('');
         setAssignRoleId('');
-        // We need to update the selectedUser state as well to reflect the change immediately in the modal
-        const updatedUsers = await (await fetch(`${API_BASE_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } })).json();
-        const updatedUser = updatedUsers.find((user: User) => user.id === selectedUser.id);
-        setSelectedUser(updatedUser);
+
       } else {
         const data = await res.json();
         toast.error(data.error || 'Falha ao atribuir cargo.');
@@ -116,7 +151,7 @@ export default function UsersPage() {
   };
 
   const handleRemoveRole = async (userInstitutionRoleId: number) => {
-    if (!token) return;
+    if (!token || !selectedUser) return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/admin/users/remove-role/${userInstitutionRoleId}`, {
@@ -126,10 +161,17 @@ export default function UsersPage() {
 
       if (res.ok) {
         toast.success('Cargo removido com sucesso!');
-        fetchData(); // Refresh all data
-         const updatedUsers = await (await fetch(`${API_BASE_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } })).json();
-        const updatedUser = updatedUsers.find((user: User) => user.id === selectedUser!.id);
+
+        // Optimistically update the UI
+        const updatedInstitutions = selectedUser.institutions.filter(
+          (instRole) => instRole.userInstitutionRoleId !== userInstitutionRoleId
+        );
+        const updatedUser = { ...selectedUser, institutions: updatedInstitutions };
         setSelectedUser(updatedUser);
+
+        // Also update the main users list
+        setUsers(users.map(user => user.id === selectedUser.id ? updatedUser : user));
+
       } else {
         toast.error('Falha ao remover cargo.');
       }
@@ -143,109 +185,101 @@ export default function UsersPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1>
-      <table className="min-w-full bg-white text-black mt-4">
-        <thead>
-          <tr>
-            <th className="py-2">Nome</th>
-            <th className="py-2">Email</th>
-            <th className="py-2">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td className="border px-4 py-2">{`${user.firstName} ${user.lastName}`}</td>
-              <td className="border px-4 py-2">{user.email}</td>
-              <td className="border px-4 py-2">
-                <button
-                  onClick={() => setSelectedUser(user)}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Gerenciar Permissões
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Gerenciamento de Usuários</h1>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user.id}>
+                <TableCell>{`${user.firstName} ${user.lastName}`}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>
+                    Gerenciar Permissões
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
-      {selectedUser && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 overflow-y-auto h-full w-full">
-          <div className="relative top-10 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-            <h3 className="text-lg font-bold text-black">
-              Gerenciar Permissões de {selectedUser.firstName}
-            </h3>
+      <Dialog open={!!selectedUser} onOpenChange={(isOpen) => !isOpen && setSelectedUser(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Permissões de {selectedUser?.firstName}</DialogTitle>
+            <DialogDescription>
+              Visualize, atribua ou remova cargos para este usuário em diferentes instituições.
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="mt-4">
-              <h4 className="font-semibold text-black">Cargos Atuais</h4>
-              <ul className="list-disc pl-5 text-black">
-                {selectedUser.institutions.map((instRole) => (
-                  <li key={instRole.userInstitutionRoleId} className="mt-2">
-                    {instRole.institution.name} - <strong>{instRole.role.name}</strong>
-                    <button
-                      onClick={() => handleRemoveRole(instRole.userInstitutionRoleId)}
-                      className="ml-4 bg-red-500 hover:bg-red-700 text-white text-xs font-bold py-1 px-2 rounded"
-                    >
-                      Remover
-                    </button>
-                  </li>
-                ))}
-              </ul>
+          <div className="py-4">
+            <h4 className="font-semibold mb-2">Cargos Atuais</h4>
+            <div className="space-y-2">
+              {selectedUser?.institutions.map((instRole) => (
+                <div key={`${instRole.institution.id}-${instRole.role.id}`} className="flex justify-between items-center p-2 rounded-md border">
+                  <span>{instRole.institution.name} - <strong>{instRole.role.name}</strong></span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleRemoveRole(instRole.userInstitutionRoleId)}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ))}
             </div>
-
-            <hr className="my-4" />
-
-            <h4 className="font-semibold text-black">Atribuir Novo Cargo</h4>
-            <form onSubmit={handleAssignRole}>
-              <div className="mt-2">
-                <label className="block text-black">Instituição</label>
-                <select
-                  value={assignInstitutionId}
-                  onChange={(e) => setAssignInstitutionId(e.target.value)}
-                  className="w-full p-2 border rounded text-black"
-                  required
-                >
-                  <option value="" disabled>Selecione</option>
-                  {institutions.map((inst) => (
-                    <option key={inst.id} value={inst.id}>{inst.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="mt-2">
-                <label className="block text-black">Cargo</label>
-                <select
-                  value={assignRoleId}
-                  onChange={(e) => setAssignRoleId(e.target.value)}
-                  className="w-full p-2 border rounded text-black"
-                  required
-                >
-                  <option value="" disabled>Selecione</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="mt-4">
-                <button
-                  type="submit"
-                  className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Atribuir
-                </button>
-              </div>
-            </form>
-
-            <button
-              onClick={() => setSelectedUser(null)}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded mt-6"
-            >
-              Fechar
-            </button>
           </div>
-        </div>
-      )}
+
+          <hr />
+
+          <form onSubmit={handleAssignRole}>
+            <h4 className="font-semibold mb-2 pt-4">Atribuir Novo Cargo</h4>
+            <div className="grid gap-4">
+              <div>
+                <label htmlFor="institution" className="block text-sm font-medium mb-1">Instituição</label>
+                <Select value={assignInstitutionId} onValueChange={setAssignInstitutionId} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma instituição" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {institutions.map((inst) => (
+                      <SelectItem key={inst.id} value={String(inst.id)}>{inst.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium mb-1">Cargo</label>
+                <Select value={assignRoleId} onValueChange={setAssignRoleId} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={String(role.id)}>{role.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="mt-6">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">Fechar</Button>
+              </DialogClose>
+              <Button type="submit">Atribuir</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
