@@ -11,8 +11,17 @@ async function main() {
   const adminRole = await prisma.role.create({
     data: { name: 'admin' },
   });
-  const userRole = await prisma.role.create({
-    data: { name: 'user' },
+  const professorRole = await prisma.role.create({
+    data: { name: 'professor' },
+  });
+  const coordenadorRole = await prisma.role.create({
+    data: { name: 'coordenador' },
+  });
+  const empresaRole = await prisma.role.create({
+    data: { name: 'empresa' },
+  });
+  const studentRole = await prisma.role.create({
+    data: { name: 'student' },
   });
 
   // Create Institutions
@@ -94,7 +103,7 @@ async function main() {
     data: {
       userId: commonUser.id,
       institutionId: institution2.id,
-      roleId: userRole.id,
+      roleId: studentRole.id,
     },
   });
 

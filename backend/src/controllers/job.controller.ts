@@ -6,7 +6,7 @@ export class JobController {
 
     async create(req: Request, res: Response) {
         // Agora 'status' é pego do body, com 'rascunho' como padrão
-        const { title, description, areaId, categoryId, status, email, telephone, companyId } = req.body;
+        const { title, description, areaId, categoryId, status, email, telephone, companyName } = req.body;
         const authorId = (req as any).user?.userId;
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
 
@@ -18,11 +18,26 @@ export class JobController {
             return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
         }
 
-        if (!title || !description || !areaId || !categoryId || !email || !telephone) {
+        try {
+            const userRole = await prisma.userInstitutionRole.findFirst({
+                where: {
+                    userId: authorId,
+                    institutionId: activeInstitutionId,
+                },
+                include: { role: true },
+            });
+
+            const allowedRoles = ['professor', 'coordenador', 'empresa', 'admin', 'superadmin'];
+            if (!userRole || !allowedRoles.includes(userRole.role.name)) {
+                return res.status(403).json({ error: 'Você não tem permissão para criar vagas.' });
+            }
+
+            const isPublic = userRole.role.name === 'empresa';
+
+            if (!title || !description || !areaId || !categoryId || !email || !telephone) {
             return res.status(400).json({ error: 'Todos os campos (exceto status) são obrigatórios.' });
         }
 
-        try {
             const job = await prisma.job.create({
                 data: {
                     title: title,
@@ -35,7 +50,8 @@ export class JobController {
                     authorId: authorId,
                     institutionId: activeInstitutionId,
                     ip: req.ip || 'IP não disponível',
-                    companyId: companyId ? parseInt(companyId) : null,
+                    companyName: companyName,
+                    isPublic: isPublic,
                 },
             });
             res.status(201).json(job);
@@ -48,7 +64,7 @@ export class JobController {
     async edit(req: Request, res: Response) {
         const { id } = req.params;
         // Adicionado 'status' aqui também
-        const { title, description, areaId, categoryId, status, email, telephone, companyId } = req.body;
+        const { title, description, areaId, categoryId, status, email, telephone, companyName } = req.body;
         const authorId = (req as any).user?.userId
 
         if (!authorId) {
@@ -76,9 +92,10 @@ export class JobController {
                 include: { role: true },
             });
 
+            const isAdmin = userRole?.role.name === 'admin';
             const isSuperAdmin = userRole?.role.name === 'superadmin';
 
-            if (job.authorId !== authorId && !isSuperAdmin) {
+            if (job.authorId !== authorId && !isAdmin && !isSuperAdmin) {
                 return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
             }
 
@@ -92,7 +109,7 @@ export class JobController {
                     status: status, // Permite atualização de status
                     email: email,
                     telephone: telephone,
-                    companyId: companyId ? parseInt(companyId) : null,
+                    companyName: companyName,
                 },
             });
             res.status(200).json(updatedJob);
@@ -167,23 +184,32 @@ export class JobController {
         }
 
         try {
-            const whereClause: Prisma.JobWhereInput = {
-                institutionId: activeInstitutionId,
-            };
+            const filters: Prisma.JobWhereInput[] = [
+                {
+                    OR: [
+                        { isPublic: false, institutionId: activeInstitutionId },
+                        { isPublic: true },
+                    ],
+                },
+            ];
 
             if (search) {
-                whereClause.title = {
-                    contains: search as string,
-                };
+                filters.push({
+                    title: {
+                        contains: search as string,
+                    },
+                });
             }
 
             if (areaId) {
-                whereClause.areaId = parseInt(areaId as string);
+                filters.push({ areaId: parseInt(areaId as string) });
             }
 
             if (categoryId) {
-                whereClause.categoryId = parseInt(categoryId as string);
+                filters.push({ categoryId: parseInt(categoryId as string) });
             }
+
+            const whereClause: Prisma.JobWhereInput = { AND: filters };
 
             const jobs = await prisma.job.findMany({
                 where: whereClause,
@@ -193,7 +219,6 @@ export class JobController {
                     },
                     area: true,
                     category: true,
-                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc' // Ordena por mais recente
@@ -212,10 +237,7 @@ export class JobController {
             const { search, areaId, categoryId } = req.query;
 
             const whereClause: Prisma.JobWhereInput = {
-                OR: [
-                    { status: 'published' },
-                    { status: 'open' }
-                ]
+                isPublic: true,
             };
 
             if (search) {
@@ -240,7 +262,6 @@ export class JobController {
                     institution: {
                         select: { name: true }
                     },
-                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc'
@@ -271,7 +292,6 @@ export class JobController {
                     author: {
                         select: { firstName: true, lastName: true }
                     },
-                    company: true,
                 }
             });
 
@@ -299,7 +319,6 @@ export class JobController {
                     area: true,
                     category: true,
                     institution: true,
-                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc'

@@ -24,10 +24,7 @@ interface Job {
   area: { name: string };
   category: { name: string };
   author: { firstName: string; lastName: string };
-  company?: {
-      name: string;
-      websiteUrl?: string | null;
-  } | null;
+  companyName?: string | null;
   institution: { name: string };
 }
 
@@ -68,9 +65,9 @@ export const JobDetailModal = ({ job, isOpen, onClose, isSaved, onToggleSave, is
                         >
                         {job.status}
                         </span>
-                        {job.company && (
+                        {job.companyName && (
                             <div className="flex items-center text-sm text-neutral-600">
-                                <Building size={14} className="mr-1.5" /> {job.company.name}
+                                <Building size={14} className="mr-1.5" /> {job.companyName}
                             </div>
                         )}
                         <div className="flex items-center text-sm text-neutral-600">
@@ -103,15 +100,6 @@ export const JobDetailModal = ({ job, isOpen, onClose, isSaved, onToggleSave, is
             <Clock className="h-4 w-4 text-neutral-500" />
             <strong>Data:</strong> {formatDate(job.createdAt)}
           </div>
-          {job.company?.websiteUrl && (
-             <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-neutral-500" />
-                <strong>Website:</strong>
-                <a href={job.company.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                    Visitar
-                </a>
-             </div>
-          )}
         </div>
 
         <div className="mt-6">
