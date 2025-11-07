@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
+import { Prisma } from '@prisma/client';
 
 export class JobController {
 
@@ -68,13 +69,17 @@ export class JobController {
             }
 
             const userRole = await prisma.userInstitutionRole.findFirst({
-                where: {userId: parseInt(authorId)}
+                where: {
+                    userId: authorId,
+                    institutionId: job.institutionId,
+                },
+                include: { role: true },
             });
 
-            if (userRole?.roleId !== 2 && userRole?.roleId !== 1 ) {
-                if(job.authorId !== authorId) {
-                    return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
-                }
+            const isSuperAdmin = userRole?.role.name === 'superadmin';
+
+            if (job.authorId !== authorId && !isSuperAdmin) {
+                return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
             }
 
             const updatedJob = await prisma.job.update({
@@ -121,10 +126,23 @@ export class JobController {
                 return res.status(404).json({ error: 'Vaga não encontrada' });
             }
 
-            // TODO: Adicionar lógica para admin/superadmin poder deletar
-            if (job.authorId !== authorId) {
+            const userRole = await prisma.userInstitutionRole.findFirst({
+                where: {
+                    userId: authorId,
+                    institutionId: job.institutionId,
+                },
+                include: { role: true },
+            });
+
+            const isSuperAdmin = userRole?.role.name === 'superadmin';
+
+            if (job.authorId !== authorId && !isSuperAdmin) {
                 return res.status(403).json({ error: 'Você não tem permissão para excluir esta vaga' });
             }
+
+            await prisma.savedJob.deleteMany({
+                where: { jobId: parseInt(id) },
+            });
 
             await prisma.job.delete({
                 where: { id: parseInt(id) },
@@ -142,16 +160,33 @@ export class JobController {
 
     async getJobsByInstitution(req: Request, res: Response) {
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
+        const { search, areaId, categoryId } = req.query;
 
         if (!activeInstitutionId) {
             return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
         }
 
         try {
+            const whereClause: Prisma.JobWhereInput = {
+                institutionId: activeInstitutionId,
+            };
+
+            if (search) {
+                whereClause.title = {
+                    contains: search as string,
+                };
+            }
+
+            if (areaId) {
+                whereClause.areaId = parseInt(areaId as string);
+            }
+
+            if (categoryId) {
+                whereClause.categoryId = parseInt(categoryId as string);
+            }
+
             const jobs = await prisma.job.findMany({
-                where: {
-                    institutionId: activeInstitutionId,
-                },
+                where: whereClause,
                 include: {
                     author: {
                         select: { firstName: true, lastName: true, email: true }
@@ -174,13 +209,31 @@ export class JobController {
     // --- NOVA FUNÇÃO ---
     async getPublicJobs(req: Request, res: Response) {
         try {
+            const { search, areaId, categoryId } = req.query;
+
+            const whereClause: Prisma.JobWhereInput = {
+                OR: [
+                    { status: 'published' },
+                    { status: 'open' }
+                ]
+            };
+
+            if (search) {
+                whereClause.title = {
+                    contains: search as string,
+                };
+            }
+
+            if (areaId) {
+                whereClause.areaId = parseInt(areaId as string);
+            }
+
+            if (categoryId) {
+                whereClause.categoryId = parseInt(categoryId as string);
+            }
+
             const jobs = await prisma.job.findMany({
-                where: {
-                    OR: [
-                        { status: 'published' },
-                        { status: 'open' }
-                    ]
-                },
+                where: whereClause,
                 include: {
                     area: true,
                     category: true,

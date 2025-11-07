@@ -5,8 +5,20 @@ import { useAuth } from '@/context/AuthContext';
 import { Briefcase, CheckCircle, Clock, Loader2, Bookmark } from 'lucide-react';
 import { JobDetailModal } from '@/components/JobDetailModal'; // Corrigido o import
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Definir a interface Job para tipagem
+interface Area {
+  id: number;
+  name: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
 interface Job {
   id: number;
   title: string;
@@ -59,6 +71,11 @@ export default function DashboardPage() {
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(true);
+
+  // Estados para filtros
+  const [filters, setFilters] = useState({ search: '', areaId: '', categoryId: '' });
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   // --- FIM NOVO ---
 
   const [stats, setStats] = useState({
@@ -66,6 +83,24 @@ export default function DashboardPage() {
     published: 0,
     recent: 0,
   });
+
+  useEffect(() => {
+    // Busca de áreas e categorias (não depende de outros filtros)
+    const fetchFilterData = async () => {
+        if (!token) return;
+        try {
+            const [areaRes, catRes] = await Promise.all([
+                fetch('http://localhost:5000/areas', { headers: { Authorization: `Bearer ${token}` } }),
+                fetch('http://localhost:5000/categories', { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            if (areaRes.ok) setAreas(await areaRes.json());
+            if (catRes.ok) setCategories(await catRes.json());
+        } catch (err) {
+            toast.error("Falha ao carregar dados para os filtros.");
+        }
+    };
+    fetchFilterData();
+  }, [token]);
 
   useEffect(() => {
     if (!token || !activeInstitutionId) {
@@ -77,13 +112,20 @@ export default function DashboardPage() {
 
     const fetchJobsAndSavedIds = async () => {
       setIsLoading(true);
-      setIsLoadingSavedJobs(true);
+      // A busca de IDs salvos não precisa ser refetch a cada filtro
+      // setIsLoadingSavedJobs(true);
+
       try {
-        // Busca de vagas e de IDs salvos em paralelo
-        const [jobsRes, savedIdsRes] = await Promise.all([
-            fetch('http://localhost:5000/jobs/my-institution', { headers: { Authorization: `Bearer ${token}` } }),
-            fetch('http://localhost:5000/saved-jobs/my-saved/ids', { headers: { Authorization: `Bearer ${token}` } })
-        ]);
+        const query = new URLSearchParams({
+            search: filters.search,
+            areaId: filters.areaId,
+            categoryId: filters.categoryId,
+        }).toString();
+
+        const jobsUrl = `http://localhost:5000/jobs/my-institution?${query}`;
+
+        // A busca de IDs salvos só precisa acontecer uma vez, então a separamos.
+        const jobsRes = await fetch(jobsUrl, { headers: { Authorization: `Bearer ${token}` } });
 
         if (jobsRes.ok) {
           const data: Job[] = await jobsRes.json();
@@ -119,12 +161,30 @@ export default function DashboardPage() {
         toast.error('Erro de rede.');
       } finally {
         setIsLoading(false);
-        setIsLoadingSavedJobs(false);
       }
     };
 
+    const fetchSavedIds = async () => {
+        if (!token) return;
+        setIsLoadingSavedJobs(true);
+        try {
+            const savedIdsRes = await fetch('http://localhost:5000/saved-jobs/my-saved/ids', { headers: { Authorization: `Bearer ${token}` } });
+            if (savedIdsRes.ok) {
+                const ids: number[] = await savedIdsRes.json();
+                setSavedJobIds(new Set(ids));
+            } else {
+                toast.error('Falha ao carregar vagas salvas.');
+            }
+        } catch(err) {
+            toast.error('Erro de rede ao buscar vagas salvas.');
+        } finally {
+            setIsLoadingSavedJobs(false);
+        }
+    }
+
     fetchJobsAndSavedIds();
-  }, [token, activeInstitutionId]);
+    fetchSavedIds(); // Chamada separada
+  }, [token, activeInstitutionId, filters]); // Adicionado filters
 
   const handleToggleSaveJob = async (jobId: number, e: React.MouseEvent) => {
     e.stopPropagation(); // Impede que o modal da vaga abra
@@ -196,9 +256,36 @@ export default function DashboardPage() {
         />
       </div>
 
+       {/* Filtros */}
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Input
+            placeholder="Buscar por título..."
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+          />
+          <Select value={filters.areaId} onValueChange={(value) => setFilters(prev => ({ ...prev, areaId: value }))}>
+            <SelectTrigger><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas as Áreas</SelectItem>
+              {areas.map(area => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filters.categoryId} onValueChange={(value) => setFilters(prev => ({ ...prev, categoryId: value }))}>
+            <SelectTrigger><SelectValue placeholder="Filtrar por Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas as Categorias</SelectItem>
+              {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {/* O botão pode ser usado no futuro para disparar a busca manualmente */}
+          {/* <Button>Buscar</Button> */}
+        </div>
+      </div>
+
       {/* Tabela de Vagas Recentes */}
       <h2 className="text-2xl font-bold text-neutral-900 mb-4">
-        Vagas Recentes (Todas da sua instituição)
+        Vagas da sua instituição
       </h2>
       <div className="bg-white p-6 rounded-lg shadow-sm">
         {isLoading ? (

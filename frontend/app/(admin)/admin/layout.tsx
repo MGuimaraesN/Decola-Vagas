@@ -21,6 +21,7 @@ import { Briefcase } from 'lucide-react';
 const adminLinks: NavLink[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Usuários', icon: Users },
+  { href: '/admin/jobs', label: 'Vagas', icon: Briefcase },
   { href: '/admin/institutions', label: 'Instituições', icon: Building },
   { href: '/admin/companies', label: 'Empresas', icon: Briefcase },
   { href: '/admin/categories', label: 'Categorias', icon: ClipboardList },

@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { AdminController } from '../controllers/admin.controller.js';
+import { JobController } from '../controllers/job.controller.js';
 import { AuthMiddleware } from '../middlewares/auth.middlewares.js';
 import { RbacMiddleware } from '../middlewares/rbac.middlewares.js';
 
 const adminRoutes = Router();
 const adminController = new AdminController();
+const jobController = new JobController();
 const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
@@ -43,6 +45,20 @@ adminRoutes.delete(
   authMiddleware.auth,
   rbacMiddleware.checkRole(['admin', 'superadmin']),
   adminController.deleteUser
+);
+
+// Job management for superadmin
+adminRoutes.get(
+    '/jobs',
+    authMiddleware.auth,
+    rbacMiddleware.checkRole(['superadmin']),
+    jobController.getAllJobs
+);
+adminRoutes.delete(
+    '/jobs/:id',
+    authMiddleware.auth,
+    rbacMiddleware.checkRole(['superadmin']),
+    jobController.delete
 );
 
 export { adminRoutes };
