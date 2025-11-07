@@ -163,7 +163,13 @@ export class UserController {
                 lastName: userData?.lastName,
                 email: userData?.email,
                 institutions: userData?.institutions,
-                activeInstitutionId: userData?.activeInstitutionId
+                activeInstitutionId: userData?.activeInstitutionId,
+                bio: userData?.bio,
+                linkedinUrl: userData?.linkedinUrl,
+                githubUrl: userData?.githubUrl,
+                portfolioUrl: userData?.portfolioUrl,
+                course: userData?.course,
+                graduationYear: userData?.graduationYear
             })
         } catch (error) {
             console.error('Erro ao obter perfil do usuário:', error)
@@ -250,6 +256,37 @@ export class UserController {
             });
         } catch (error) {
             console.error('Erro ao trocar de instituição:', error);
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+
+    async updateProfile(req: Request, res: Response) {
+        try {
+            const userEmail = (req as any).user?.email;
+            const {
+                bio,
+                linkedinUrl,
+                githubUrl,
+                portfolioUrl,
+                course,
+                graduationYear
+            } = req.body;
+
+            const updatedUser = await prisma.user.update({
+                where: { email: userEmail },
+                data: {
+                    bio,
+                    linkedinUrl,
+                    githubUrl,
+                    portfolioUrl,
+                    course,
+                    graduationYear
+                }
+            });
+
+            res.status(200).json(updatedUser);
+        } catch (error) {
+            console.error('Erro ao atualizar perfil:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }

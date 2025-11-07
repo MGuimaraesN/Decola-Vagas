@@ -1,11 +1,12 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
+import { Prisma } from '@prisma/client';
 
 export class JobController {
 
     async create(req: Request, res: Response) {
         // Agora 'status' é pego do body, com 'rascunho' como padrão
-        const { title, description, areaId, categoryId, status, email, telephone } = req.body;
+        const { title, description, areaId, categoryId, status, email, telephone, companyId } = req.body;
         const authorId = (req as any).user?.userId;
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
 
@@ -34,6 +35,7 @@ export class JobController {
                     authorId: authorId,
                     institutionId: activeInstitutionId,
                     ip: req.ip || 'IP não disponível',
+                    companyId: companyId ? parseInt(companyId) : null,
                 },
             });
             res.status(201).json(job);
@@ -46,7 +48,7 @@ export class JobController {
     async edit(req: Request, res: Response) {
         const { id } = req.params;
         // Adicionado 'status' aqui também
-        const { title, description, areaId, categoryId, status, email, telephone } = req.body;
+        const { title, description, areaId, categoryId, status, email, telephone, companyId } = req.body;
         const authorId = (req as any).user?.userId
 
         if (!authorId) {
@@ -67,13 +69,17 @@ export class JobController {
             }
 
             const userRole = await prisma.userInstitutionRole.findFirst({
-                where: {userId: parseInt(authorId)}
+                where: {
+                    userId: authorId,
+                    institutionId: job.institutionId,
+                },
+                include: { role: true },
             });
 
-            if (userRole?.roleId !== 2 && userRole?.roleId !== 1 ) {
-                if(job.authorId !== authorId) {
-                    return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
-                }
+            const isSuperAdmin = userRole?.role.name === 'superadmin';
+
+            if (job.authorId !== authorId && !isSuperAdmin) {
+                return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
             }
 
             const updatedJob = await prisma.job.update({
@@ -86,6 +92,7 @@ export class JobController {
                     status: status, // Permite atualização de status
                     email: email,
                     telephone: telephone,
+                    companyId: companyId ? parseInt(companyId) : null,
                 },
             });
             res.status(200).json(updatedJob);
@@ -119,10 +126,23 @@ export class JobController {
                 return res.status(404).json({ error: 'Vaga não encontrada' });
             }
 
-            // TODO: Adicionar lógica para admin/superadmin poder deletar
-            if (job.authorId !== authorId) {
+            const userRole = await prisma.userInstitutionRole.findFirst({
+                where: {
+                    userId: authorId,
+                    institutionId: job.institutionId,
+                },
+                include: { role: true },
+            });
+
+            const isSuperAdmin = userRole?.role.name === 'superadmin';
+
+            if (job.authorId !== authorId && !isSuperAdmin) {
                 return res.status(403).json({ error: 'Você não tem permissão para excluir esta vaga' });
             }
+
+            await prisma.savedJob.deleteMany({
+                where: { jobId: parseInt(id) },
+            });
 
             await prisma.job.delete({
                 where: { id: parseInt(id) },
@@ -140,22 +160,40 @@ export class JobController {
 
     async getJobsByInstitution(req: Request, res: Response) {
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
+        const { search, areaId, categoryId } = req.query;
 
         if (!activeInstitutionId) {
             return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
         }
 
         try {
+            const whereClause: Prisma.JobWhereInput = {
+                institutionId: activeInstitutionId,
+            };
+
+            if (search) {
+                whereClause.title = {
+                    contains: search as string,
+                };
+            }
+
+            if (areaId) {
+                whereClause.areaId = parseInt(areaId as string);
+            }
+
+            if (categoryId) {
+                whereClause.categoryId = parseInt(categoryId as string);
+            }
+
             const jobs = await prisma.job.findMany({
-                where: {
-                    institutionId: activeInstitutionId,
-                },
+                where: whereClause,
                 include: {
                     author: {
                         select: { firstName: true, lastName: true, email: true }
                     },
                     area: true,
                     category: true,
+                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc' // Ordena por mais recente
@@ -171,19 +209,38 @@ export class JobController {
     // --- NOVA FUNÇÃO ---
     async getPublicJobs(req: Request, res: Response) {
         try {
+            const { search, areaId, categoryId } = req.query;
+
+            const whereClause: Prisma.JobWhereInput = {
+                OR: [
+                    { status: 'published' },
+                    { status: 'open' }
+                ]
+            };
+
+            if (search) {
+                whereClause.title = {
+                    contains: search as string,
+                };
+            }
+
+            if (areaId) {
+                whereClause.areaId = parseInt(areaId as string);
+            }
+
+            if (categoryId) {
+                whereClause.categoryId = parseInt(categoryId as string);
+            }
+
             const jobs = await prisma.job.findMany({
-                where: {
-                    OR: [
-                        { status: 'published' },
-                        { status: 'open' }
-                    ]
-                },
+                where: whereClause,
                 include: {
                     area: true,
                     category: true,
                     institution: {
                         select: { name: true }
-                    }
+                    },
+                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc'
@@ -213,7 +270,8 @@ export class JobController {
                     category: true,
                     author: {
                         select: { firstName: true, lastName: true }
-                    }
+                    },
+                    company: true,
                 }
             });
 
@@ -241,6 +299,7 @@ export class JobController {
                     area: true,
                     category: true,
                     institution: true,
+                    company: true,
                 },
                 orderBy: {
                     createdAt: 'desc'

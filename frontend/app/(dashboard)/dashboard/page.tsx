@@ -2,11 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Briefcase, CheckCircle, Clock, Loader2 } from 'lucide-react';
-import JobDetailModal from '@/components/JobDetailModal'; // Importando o modal
+import { Briefcase, CheckCircle, Clock, Loader2, Bookmark } from 'lucide-react';
+import { JobDetailModal } from '@/components/JobDetailModal'; // Corrigido o import
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Definir a interface Job para tipagem
+interface Area {
+  id: number;
+  name: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
 interface Job {
   id: number;
   title: string;
@@ -54,7 +66,16 @@ export default function DashboardPage() {
 
   // --- NOVO: Estado para o Modal ---
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Estado para vagas salvas
+  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(true);
+
+  // Estados para filtros
+  const [filters, setFilters] = useState({ search: '', areaId: '', categoryId: '' });
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   // --- FIM NOVO ---
 
   const [stats, setStats] = useState({
@@ -64,6 +85,24 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    // Busca de áreas e categorias (não depende de outros filtros)
+    const fetchFilterData = async () => {
+        if (!token) return;
+        try {
+            const [areaRes, catRes] = await Promise.all([
+                fetch('http://localhost:5000/areas', { headers: { Authorization: `Bearer ${token}` } }),
+                fetch('http://localhost:5000/categories', { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+            if (areaRes.ok) setAreas(await areaRes.json());
+            if (catRes.ok) setCategories(await catRes.json());
+        } catch (err) {
+            toast.error("Falha ao carregar dados para os filtros.");
+        }
+    };
+    fetchFilterData();
+  }, [token]);
+
+  useEffect(() => {
     if (!token || !activeInstitutionId) {
       setJobs([]);
       setStats({ total: 0, published: 0, recent: 0 });
@@ -71,17 +110,25 @@ export default function DashboardPage() {
       return;
     }
 
-    const fetchJobs = async () => {
+    const fetchJobsAndSavedIds = async () => {
       setIsLoading(true);
-      try {
-        const res = await fetch('http://localhost:5000/jobs/my-institution', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      // A busca de IDs salvos não precisa ser refetch a cada filtro
+      // setIsLoadingSavedJobs(true);
 
-        if (res.ok) {
-          const data: Job[] = await res.json();
+      try {
+        const query = new URLSearchParams({
+            search: filters.search,
+            areaId: filters.areaId,
+            categoryId: filters.categoryId,
+        }).toString();
+
+        const jobsUrl = `http://localhost:5000/jobs/my-institution?${query}`;
+
+        // A busca de IDs salvos só precisa acontecer uma vez, então a separamos.
+        const jobsRes = await fetch(jobsUrl, { headers: { Authorization: `Bearer ${token}` } });
+
+        if (jobsRes.ok) {
+          const data: Job[] = await jobsRes.json();
           setJobs(data);
 
           // Calcular estatísticas
@@ -102,6 +149,14 @@ export default function DashboardPage() {
         } else {
           toast.error('Falha ao carregar as vagas.');
         }
+
+        if (savedIdsRes.ok) {
+            const ids: number[] = await savedIdsRes.json();
+            setSavedJobIds(new Set(ids));
+        } else {
+            toast.error('Falha ao carregar vagas salvas.');
+        }
+
       } catch (err) {
         toast.error('Erro de rede.');
       } finally {
@@ -109,13 +164,66 @@ export default function DashboardPage() {
       }
     };
 
-    fetchJobs();
-  }, [token, activeInstitutionId]);
+    const fetchSavedIds = async () => {
+        if (!token) return;
+        setIsLoadingSavedJobs(true);
+        try {
+            const savedIdsRes = await fetch('http://localhost:5000/saved-jobs/my-saved/ids', { headers: { Authorization: `Bearer ${token}` } });
+            if (savedIdsRes.ok) {
+                const ids: number[] = await savedIdsRes.json();
+                setSavedJobIds(new Set(ids));
+            } else {
+                toast.error('Falha ao carregar vagas salvas.');
+            }
+        } catch(err) {
+            toast.error('Erro de rede ao buscar vagas salvas.');
+        } finally {
+            setIsLoadingSavedJobs(false);
+        }
+    }
+
+    fetchJobsAndSavedIds();
+    fetchSavedIds(); // Chamada separada
+  }, [token, activeInstitutionId, filters]); // Adicionado filters
+
+  const handleToggleSaveJob = async (jobId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede que o modal da vaga abra
+    if (isSaving) return;
+    setIsSaving(true);
+
+    const isSaved = savedJobIds.has(jobId);
+    const url = `http://localhost:5000/saved-jobs/${jobId}`;
+    const method = isSaved ? 'DELETE' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method,
+            headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (res.ok) {
+            const newSet = new Set(savedJobIds);
+            if (isSaved) {
+                newSet.delete(jobId);
+                toast.info('Vaga removida dos favoritos.');
+            } else {
+                newSet.add(jobId);
+                toast.success('Vaga salva com sucesso!');
+            }
+            setSavedJobIds(newSet);
+        } else {
+            toast.error(`Falha ao ${isSaved ? 'remover' : 'salvar'} vaga.`);
+        }
+    } catch (error) {
+        toast.error('Erro de rede.');
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   // Abre o modal com os detalhes da vaga clicada
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
-    setIsModalOpen(true);
   };
   
   const recentJobs = jobs.slice(0, 5);
@@ -148,9 +256,38 @@ export default function DashboardPage() {
         />
       </div>
 
+       {/* Filtros */}
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Input
+            placeholder="Buscar por título..."
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+          />
+          <Select value={filters.areaId} onValueChange={(value) => 
+            setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
+              <SelectTrigger><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Áreas</SelectItem>
+                {areas.map(area => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filters.categoryId} onValueChange={(value) => 
+              setFilters(prev => ({ ...prev, categoryId: value === 'all' ? '' : value }))}>
+                <SelectTrigger><SelectValue placeholder="Filtrar por Categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Categorias</SelectItem>
+                  {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
+                  </SelectContent>
+              </Select>
+          {/* O botão pode ser usado no futuro para disparar a busca manualmente */}
+          {/* <Button>Buscar</Button> */}
+        </div>
+      </div>
+
       {/* Tabela de Vagas Recentes */}
       <h2 className="text-2xl font-bold text-neutral-900 mb-4">
-        Vagas Recentes (Todas da sua instituição)
+        Vagas da sua instituição
       </h2>
       <div className="bg-white p-6 rounded-lg shadow-sm">
         {isLoading ? (
@@ -192,16 +329,21 @@ export default function DashboardPage() {
                   >
                     Status
                   </th>
+                   <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">Salvar</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-neutral-200">
                 {jobs.map((job) => (
                   <tr 
                     key={job.id} 
-                    className="hover:bg-neutral-50 cursor-pointer"
-                    onClick={() => handleJobClick(job)} // NOVO: Click handler
+                    className="hover:bg-neutral-50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-700 hover:underline">
+                    <td
+                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-700 hover:underline cursor-pointer"
+                        onClick={() => handleJobClick(job)}
+                    >
                       {job.title}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
@@ -224,6 +366,17 @@ export default function DashboardPage() {
                         {job.status === 'rascunho' ? 'Rascunho' : (job.status === 'published' || job.status === 'open' ? 'Publicado' : 'Fechado')}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                            onClick={(e) => handleToggleSaveJob(job.id, e)}
+                            disabled={isLoadingSavedJobs || isSaving}
+                            className="p-2 rounded-full hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-wait"
+                        >
+                            <Bookmark
+                                className={`h-5 w-5 ${savedJobIds.has(job.id) ? 'text-blue-600 fill-current' : 'text-neutral-400'}`}
+                            />
+                        </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -237,11 +390,16 @@ export default function DashboardPage() {
       </div>
 
       {/* --- NOVO: Renderiza o Modal --- */}
-      <JobDetailModal 
-        job={selectedJob} 
-        isOpen={isModalOpen} 
-        onOpenChange={setIsModalOpen} 
-      />
+       {selectedJob && (
+        <JobDetailModal
+            job={selectedJob}
+            isOpen={!!selectedJob}
+            onClose={() => setSelectedJob(null)}
+            isSaved={savedJobIds.has(selectedJob.id)}
+            onToggleSave={(jobId) => handleToggleSaveJob(jobId, new MouseEvent('click'))} // Simula um evento
+            isSaving={isSaving || isLoadingSavedJobs}
+        />
+       )}
     </div>
   );
 }

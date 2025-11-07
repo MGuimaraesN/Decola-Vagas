@@ -20,6 +20,13 @@ model User {
   job                 Job[]
   institutions        UserInstitutionRole[]
   activeInstitutionId Int?
+  bio                 String?               @db.Text
+  linkedinUrl         String?
+  githubUrl           String?
+  portfolioUrl        String?
+  course              String?
+  graduationYear      Int?
+  savedJobs           SavedJob[]
 }
 
 model Job {
@@ -41,6 +48,29 @@ model Job {
   createdAt     DateTime    @default(now())
   institutionId Int
   institution   Institution @relation(fields: [institutionId], references: [id])
+  savedBy       SavedJob[]
+  companyId     Int?
+  company       Company?    @relation(fields: [companyId], references: [id])
+}
+
+model SavedJob {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  jobId     Int
+  job       Job      @relation(fields: [jobId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+}
+
+model Company {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  logoUrl     String?
+  websiteUrl  String?
+  description String? @db.Text
+  jobs        Job[]
 }
 
 model Category {

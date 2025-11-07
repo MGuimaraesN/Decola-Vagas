@@ -5,8 +5,20 @@ import { Building, Briefcase, Users, Network, LogIn, Clock, MapPin, Loader2 } fr
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Interfaces para os dados
+interface Area {
+  id: number;
+  name: string;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
 interface Job {
   id: number;
   title: string;
@@ -23,6 +35,11 @@ export default function LandingPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
 
+  // Estados dos filtros
+  const [filters, setFilters] = useState({ search: '', areaId: '', categoryId: '' });
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+
   // Redireciona para o dashboard se o usuário já estiver logado
   useEffect(() => {
     if (!loading && user) {
@@ -35,7 +52,12 @@ export default function LandingPage() {
     const fetchPublicJobs = async () => {
       setLoadingJobs(true);
       try {
-        const res = await fetch('http://localhost:5000/jobs/public');
+        const query = new URLSearchParams({
+            search: filters.search,
+            areaId: filters.areaId,
+            categoryId: filters.categoryId,
+        }).toString();
+        const res = await fetch(`http://localhost:5000/jobs/public?${query}`);
         if (res.ok) {
           const data = await res.json();
           setJobs(data);
@@ -50,7 +72,24 @@ export default function LandingPage() {
     if (!user && !loading) {
       fetchPublicJobs();
     }
-  }, [user, loading]);
+  }, [user, loading, filters]);
+
+  // Busca dados para filtros (áreas e categorias)
+    useEffect(() => {
+        const fetchFilterData = async () => {
+            try {
+                const [areaRes, catRes] = await Promise.all([
+                    fetch('http://localhost:5000/areas'),
+                    fetch('http://localhost:5000/categories')
+                ]);
+                if (areaRes.ok) setAreas(await areaRes.json());
+                if (catRes.ok) setCategories(await catRes.json());
+            } catch (err) {
+                console.error("Falha ao carregar dados para os filtros.");
+            }
+        };
+        fetchFilterData();
+    }, []);
   // --- FIM DA NOVA FUNCIONALIDADE ---
 
 
@@ -115,9 +154,39 @@ export default function LandingPage() {
         {/* --- NOVA SEÇÃO: Vagas Recentes --- */}
         <section className="bg-white py-20 md:py-24">
           <div className="container mx-auto max-w-5xl px-4">
-            <h2 className="text-center text-3xl font-bold text-neutral-900 mb-12">
+            <h2 className="text-center text-3xl font-bold text-neutral-900 mb-4">
               Vagas Recentes
             </h2>
+            <p className="text-center text-neutral-600 mb-12">
+              Filtre as oportunidades abertas e encontre a ideal para você.
+            </p>
+
+            {/* Filtros */}
+            <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                    placeholder="Buscar por título..."
+                    value={filters.search}
+                    onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    className="md:col-span-1"
+                />
+                <Select value={filters.areaId} onValueChange={(value) => 
+                  setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
+                    <SelectTrigger><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as Áreas</SelectItem>
+                      {areas.map(area => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  <Select value={filters.categoryId} onValueChange={(value) => 
+                    setFilters(prev => ({ ...prev, categoryId: value === 'all' ? '' : value }))}>
+                      <SelectTrigger><SelectValue placeholder="Filtrar por Categoria" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as Categorias</SelectItem>
+                        {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
+                        </SelectContent>
+                  </Select>
+            </div>
+
             {loadingJobs ? (
               <div className="flex justify-center items-center h-40">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
