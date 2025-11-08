@@ -11,6 +11,7 @@ export interface NavLink {
   href: string;
   label: string;
   icon: LucideIcon;
+  roles?: string[];
 }
 
 interface SidebarProps {

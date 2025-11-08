@@ -44,10 +44,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-white">
       {/* Sidebar Unificada */}
-      <Sidebar 
-        title="Decola Vagas" 
-        icon={Building} 
-        navLinks={navLinks} 
+      <Sidebar
+        title="Decola Vagas"
+        icon={Building}
+        navLinks={navLinks}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">

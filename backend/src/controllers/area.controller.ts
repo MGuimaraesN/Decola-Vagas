@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
 
 export class AreaController {
-    
+
     async getAll(req: Request, res: Response) {
         try {
             const areas = await prisma.area.findMany();

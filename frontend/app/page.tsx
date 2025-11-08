@@ -169,7 +169,7 @@ export default function LandingPage() {
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                     className="md:col-span-1"
                 />
-                <Select value={filters.areaId} onValueChange={(value) => 
+                <Select value={filters.areaId} onValueChange={(value) =>
                   setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
                     <SelectTrigger><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
                     <SelectContent>
@@ -177,7 +177,7 @@ export default function LandingPage() {
                       {areas.map(area => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  <Select value={filters.categoryId} onValueChange={(value) => 
+                  <Select value={filters.categoryId} onValueChange={(value) =>
                     setFilters(prev => ({ ...prev, categoryId: value === 'all' ? '' : value }))}>
                       <SelectTrigger><SelectValue placeholder="Filtrar por Categoria" /></SelectTrigger>
                       <SelectContent>
@@ -283,7 +283,7 @@ function JobCard({ job }: { job: Job }) {
     <div className="bg-white p-6 rounded-lg shadow-md border border-neutral-200 hover:shadow-lg transition-shadow">
       <h3 className="text-xl font-semibold text-neutral-900">{job.title}</h3>
       <p className="text-sm font-medium text-blue-600 mt-1">{job.category.name}</p>
-      
+
       <div className="mt-4 flex flex-col gap-2 text-sm text-neutral-600">
         <div className="flex items-center gap-2">
           <Building className="h-4 w-4" />

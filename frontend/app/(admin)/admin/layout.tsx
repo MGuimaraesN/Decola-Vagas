@@ -18,15 +18,14 @@ import {
 // Links de navegação do Admin
 import { Briefcase } from 'lucide-react';
 
-const adminLinks: NavLink[] = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/users', label: 'Usuários', icon: Users },
-  { href: '/admin/jobs', label: 'Vagas', icon: Briefcase },
-  { href: '/admin/institutions', label: 'Instituições', icon: Building },
-  { href: '/admin/companies', label: 'Empresas', icon: Briefcase },
-  { href: '/admin/categories', label: 'Categorias', icon: ClipboardList },
-  { href: '/admin/areas', label: 'Áreas', icon: Network },
-  { href: '/admin/roles', label: 'Cargos', icon: Shield },
+const allAdminLinks: NavLink[] = [
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/admin/users', label: 'Usuários', icon: Users, roles: ['admin', 'superadmin'] },
+  { href: '/admin/jobs', label: 'Vagas', icon: Briefcase, roles: ['admin', 'superadmin'] },
+  { href: '/admin/institutions', label: 'Instituições', icon: Building, roles: ['superadmin'] },
+  { href: '/admin/categories', label: 'Categorias', icon: ClipboardList, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/admin/areas', label: 'Áreas', icon: Network, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/admin/roles', label: 'Cargos', icon: Shield, roles: ['superadmin'] },
 ];
 
 const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
@@ -46,7 +45,7 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
 
       if (
         !activeInstitution ||
-        !['admin', 'superadmin'].includes(activeInstitution.role.name)
+        !['admin', 'superadmin', 'professor', 'coordenador'].includes(activeInstitution.role.name)
       ) {
         // Se não for admin, manda para o dashboard normal
         router.push('/dashboard');
@@ -68,7 +67,7 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
   );
   if (
     activeInstitution &&
-    ['admin', 'superadmin'].includes(activeInstitution.role.name)
+    ['admin', 'superadmin', 'professor', 'coordenador'].includes(activeInstitution.role.name)
   ) {
     return <>{children}</>;
   }
@@ -82,16 +81,27 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+
+  const activeInstitution = user?.institutions.find(
+    (inst) => inst.institution.id === user.activeInstitutionId
+  );
+  const activeRole = activeInstitution?.role.name;
+
+  const filteredLinks = allAdminLinks.filter(
+    (link) => link.roles?.includes(activeRole || '')
+  );
+
   return (
     <AdminAuthGuard>
       <div className="flex min-h-screen w-full bg-white">
         {/* Sidebar Unificada */}
-        <Sidebar 
-          title="Decola Admin" 
-          icon={Shield} 
-          navLinks={adminLinks} 
+        <Sidebar
+          title="Decola Admin"
+          icon={Shield}
+          navLinks={filteredLinks}
         />
-        
+
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header Unificado */}
           <Header />

@@ -24,11 +24,6 @@ interface Area {
   name: string;
 }
 
-interface Company {
-  id: number;
-  name: string;
-}
-
 export default function NewJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,12 +31,11 @@ export default function NewJobPage() {
   const [telephone, setTelephone] = useState('');
   const [areaId, setAreaId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [companyId, setCompanyId] = useState(''); // Estado para empresa
+  const [companyName, setCompanyName] = useState(''); // Novo estado para nome da empresa
   const [status, setStatus] = useState('rascunho');
-  
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]); // Estado para empresas
   const [isLoading, setIsLoading] = useState(false);
 
   const { token } = useAuth();
@@ -52,14 +46,12 @@ export default function NewJobPage() {
     const fetchData = async () => {
       if (!token) return;
       try {
-        const [catRes, areaRes, compRes] = await Promise.all([
+        const [catRes, areaRes] = await Promise.all([
           fetch('http://localhost:5000/categories', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('http://localhost:5000/areas', { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch('http://localhost:5000/companies', { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch('http://localhost:5000/areas', { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
         if (catRes.ok) setCategories(await catRes.json());
         if (areaRes.ok) setAreas(await areaRes.json());
-        if (compRes.ok) setCompanies(await compRes.json());
       } catch (err) {
         toast.error('Falha ao carregar dados adicionais.');
       }
@@ -89,7 +81,7 @@ export default function NewJobPage() {
           telephone,
           areaId: parseInt(areaId),
           categoryId: parseInt(categoryId),
-          companyId: companyId ? parseInt(companyId) : null, // Enviando a empresa
+          companyName: companyName,
           status: status
         }),
       });
@@ -112,12 +104,12 @@ export default function NewJobPage() {
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6 text-neutral-900">Criar Nova Vaga</h1>
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6">
-        
+
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">Título da Vaga</label>
           <Input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} required />
         </div>
-        
+
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição Completa</label>
           <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full p-2 border border-input rounded-md min-h-[150px] text-sm" required />
@@ -135,18 +127,10 @@ export default function NewJobPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div>
-          <label htmlFor="companyId" className="block text-sm font-medium text-neutral-700 mb-1">Empresa (Opcional)</label>
-          <Select value={companyId} onValueChange={(value) => setCompanyId(value === 'none' ? '' : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione uma empresa" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Nenhuma</SelectItem>
-              {companies.map((company) => <SelectItem key={company.id} value={String(company.id)}>{company.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+          <div>
+            <label htmlFor="companyName" className="block text-sm font-medium text-neutral-700 mb-1">Nome da Empresa (Opcional)</label>
+            <Input type="text" id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
+          </div>
           <div>
             <label htmlFor="areaId" className="block text-sm font-medium text-neutral-700 mb-1">Área</label>
             <Select value={areaId} onValueChange={setAreaId} required>

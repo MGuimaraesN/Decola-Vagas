@@ -24,7 +24,7 @@ interface Job {
   title: string;
   description: string;
   status: string;
-  createdAt: string; 
+  createdAt: string;
   email: string;
   telephone: string;
   area: { name: string };
@@ -150,6 +150,7 @@ export default function DashboardPage() {
           toast.error('Falha ao carregar as vagas.');
         }
 
+        const savedIdsRes = await fetch('http://localhost:5000/saved-jobs/my-saved/ids', { headers: { Authorization: `Bearer ${token}` } });
         if (savedIdsRes.ok) {
             const ids: number[] = await savedIdsRes.json();
             setSavedJobIds(new Set(ids));
@@ -225,7 +226,7 @@ export default function DashboardPage() {
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
   };
-  
+
   const recentJobs = jobs.slice(0, 5);
 
   return (
@@ -264,7 +265,7 @@ export default function DashboardPage() {
             value={filters.search}
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
           />
-          <Select value={filters.areaId} onValueChange={(value) => 
+          <Select value={filters.areaId} onValueChange={(value) =>
             setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
               <SelectTrigger><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
               <SelectContent>
@@ -272,7 +273,7 @@ export default function DashboardPage() {
                 {areas.map(area => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filters.categoryId} onValueChange={(value) => 
+            <Select value={filters.categoryId} onValueChange={(value) =>
               setFilters(prev => ({ ...prev, categoryId: value === 'all' ? '' : value }))}>
                 <SelectTrigger><SelectValue placeholder="Filtrar por Categoria" /></SelectTrigger>
                 <SelectContent>
@@ -336,8 +337,8 @@ export default function DashboardPage() {
               </thead>
               <tbody className="bg-white divide-y divide-neutral-200">
                 {jobs.map((job) => (
-                  <tr 
-                    key={job.id} 
+                  <tr
+                    key={job.id}
                     className="hover:bg-neutral-50"
                   >
                     <td

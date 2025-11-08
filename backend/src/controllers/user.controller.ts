@@ -35,7 +35,7 @@ export class UserController {
                     ip: ipUser
                 }});
 
-            const userRole = await prisma.role.findUnique({ where: { name: 'user' } });
+            const userRole = await prisma.role.findUnique({ where: { name: 'student' } });
             if (!userRole) {
                 return res.status(500).json({ error: 'Cargo "user" não encontrado' });
             }
@@ -172,8 +172,8 @@ export class UserController {
                 graduationYear: userData?.graduationYear
             })
         } catch (error) {
-            console.error('Erro ao obter perfil do usuário:', error)
-            res.status(500).json({error: 'Erro interno do servidor'});
+            console.error('Erro detalhado ao obter perfil do usuário:', error);
+            res.status(500).json({ error: 'Erro interno do servidor ao buscar perfil', details: (error as Error).message });
         }
     }
 

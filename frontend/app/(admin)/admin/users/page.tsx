@@ -15,6 +15,17 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -65,6 +76,18 @@ export default function UsersPage() {
   const [assignInstitutionId, setAssignInstitutionId] = useState('');
   const [assignRoleId, setAssignRoleId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
+  // State for the create user form
+  const [createUserForm, setCreateUserForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    institutionId: '',
+    roleId: '',
+  });
 
   const { token } = useAuth();
 
@@ -180,13 +203,77 @@ export default function UsersPage() {
     }
   };
 
-    if (isLoading) {
+  const handleCreateUser = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/users/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...createUserForm,
+          institutionId: parseInt(createUserForm.institutionId),
+          roleId: parseInt(createUserForm.roleId),
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('Usuário criado com sucesso!');
+        setIsCreateModalOpen(false);
+        fetchData(); // Refresh the user list
+        // Reset form
+        setCreateUserForm({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          institutionId: '',
+          roleId: '',
+        });
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Falha ao criar usuário.');
+      }
+    } catch (error) {
+      toast.error('Erro de rede ao criar usuário.');
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!token || !userToDelete) return;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok || res.status === 204) {
+        toast.success('Usuário excluído com sucesso!');
+        setUserToDelete(null);
+        fetchData(); // Re-fetch
+      } else {
+        toast.error('Falha ao excluir usuário.');
+      }
+    } catch (error) {
+      toast.error('Erro de rede ao excluir usuário.');
+    }
+  };
+
+  if (isLoading) {
     return <div>Carregando...</div>;
   }
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Gerenciamento de Usuários</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1>
+        <Button onClick={() => setIsCreateModalOpen(true)}>Novo Usuário</Button>
+      </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -201,9 +288,12 @@ export default function UsersPage() {
               <TableRow key={user.id}>
                 <TableCell>{`${user.firstName} ${user.lastName}`}</TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right space-x-2">
                   <Button variant="outline" size="sm" onClick={() => setSelectedUser(user)}>
                     Gerenciar Permissões
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={() => setUserToDelete(user)}>
+                    Excluir
                   </Button>
                 </TableCell>
               </TableRow>
@@ -280,6 +370,100 @@ export default function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
+            <DialogDescription>
+              Preencha os detalhes abaixo para criar um novo usuário e atribuir um cargo inicial.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateUser}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  placeholder="Nome"
+                  value={createUserForm.firstName}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, firstName: e.target.value })}
+                  required
+                />
+                <Input
+                  placeholder="Sobrenome"
+                  value={createUserForm.lastName}
+                  onChange={(e) => setCreateUserForm({ ...createUserForm, lastName: e.target.value })}
+                  required
+                />
+              </div>
+              <Input
+                type="email"
+                placeholder="Email"
+                value={createUserForm.email}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, email: e.target.value })}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Senha"
+                value={createUserForm.password}
+                onChange={(e) => setCreateUserForm({ ...createUserForm, password: e.target.value })}
+                required
+              />
+              <Select
+                value={createUserForm.institutionId}
+                onValueChange={(value) => setCreateUserForm({ ...createUserForm, institutionId: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma instituição" />
+                </SelectTrigger>
+                <SelectContent>
+                  {institutions.map((inst) => (
+                    <SelectItem key={inst.id} value={String(inst.id)}>{inst.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={createUserForm.roleId}
+                onValueChange={(value) => setCreateUserForm({ ...createUserForm, roleId: value })}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={String(role.id)}>{role.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline">Cancelar</Button>
+              </DialogClose>
+              <Button type="submit">Criar Usuário</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o usuário "{userToDelete?.firstName} {userToDelete?.lastName}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

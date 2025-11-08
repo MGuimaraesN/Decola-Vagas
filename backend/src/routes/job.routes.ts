@@ -36,7 +36,7 @@ jobRoutes.get(
     jobController.getJobsByInstitution
 );
 jobRoutes.get(
-    '/admin', 
+    '/admin',
     authMiddleware.auth,
     rbacMiddleware.checkRole(['admin', 'superadmin']),
     jobController.getAllJobs

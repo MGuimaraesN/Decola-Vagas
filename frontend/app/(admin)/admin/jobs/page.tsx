@@ -24,6 +24,7 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import Link from 'next/link';
 
 // Interfaces (ajustadas para o contexto de Vagas)
 interface Job {
@@ -116,6 +117,9 @@ export default function AdminJobsPage() {
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gerenciamento de Todas as Vagas</h1>
+        <Button asChild>
+          <Link href="/dashboard/jobs/new">Criar Nova Vaga</Link>
+        </Button>
       </div>
       <div className="rounded-lg border">
         <Table>

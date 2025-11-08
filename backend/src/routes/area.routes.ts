@@ -21,19 +21,19 @@ areaRoutes.get(
 areaRoutes.post(
     '/',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['admin', 'superadmin']),
+    rbacMiddleware.checkRole(['admin', 'superadmin', 'professor', 'coordenador']),
     areaController.create
 );
 areaRoutes.put(
     '/:id',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['admin', 'superadmin']),
+    rbacMiddleware.checkRole(['admin', 'superadmin', 'professor', 'coordenador']),
     areaController.update
 );
 areaRoutes.delete(
     '/:id',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['admin', 'superadmin']),
+    rbacMiddleware.checkRole(['admin', 'superadmin', 'professor', 'coordenador']),
     areaController.delete
 );
 

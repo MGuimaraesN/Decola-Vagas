@@ -47,11 +47,11 @@ export default function ManageJobsPage() {
       // ATENÇÃO: O endpoint /my-institution precisa ser ajustado para filtrar por *autor*
       // Por agora, vamos assumir que my-institution filtra corretamente, ou usar /admin se formos admin
       // Vamos assumir que /my-institution é o correto para "minhas vagas"
-      
+
       // Ajuste: A rota 'my-institution' busca TODAS as vagas da instituição.
       // Precisamos filtrar no frontend pelas vagas do usuário logado.
       // OU (MELHOR) criar uma rota no backend `/jobs/my-jobs`
-      
+
       // Vamos usar /my-institution e filtrar no frontend por enquanto
       // Idealmente, o backend deveria ter uma rota /jobs/my-jobs que filtra por authorId
       const res = await fetch('http://localhost:5000/jobs/my-institution', {

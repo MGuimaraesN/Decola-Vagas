@@ -46,6 +46,12 @@ adminRoutes.delete(
   rbacMiddleware.checkRole(['admin', 'superadmin']),
   adminController.deleteUser
 );
+adminRoutes.post(
+  '/users/create',
+  authMiddleware.auth,
+  rbacMiddleware.checkRole(['admin', 'superadmin']),
+  adminController.createUser
+);
 
 // Job management for superadmin
 adminRoutes.get(

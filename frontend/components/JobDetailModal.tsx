@@ -24,10 +24,7 @@ interface Job {
   area: { name: string };
   category: { name: string };
   author: { firstName: string; lastName: string };
-  company?: {
-      name: string;
-      websiteUrl?: string | null;
-  } | null;
+  companyName?: string | null;
   institution: { name: string };
 }
 
@@ -54,42 +51,56 @@ export const JobDetailModal = ({ job, isOpen, onClose, isSaved, onToggleSave, is
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
-        <DialogHeader>
-            <div className="flex justify-between items-start">
-                <div>
-                    <DialogTitle className="text-2xl font-bold text-neutral-900">{job.title}</DialogTitle>
-                    <DialogDescription className="pt-2 flex items-center gap-4">
-                        <span
-                        className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                            job.status === 'published' || job.status === 'open'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-neutral-100 text-neutral-800'
-                        }`}
-                        >
-                        {job.status}
-                        </span>
-                        {job.company && (
-                            <div className="flex items-center text-sm text-neutral-600">
-                                <Building size={14} className="mr-1.5" /> {job.company.name}
-                            </div>
-                        )}
-                        <div className="flex items-center text-sm text-neutral-600">
-                            <MapPin size={14} className="mr-1.5" /> {job.institution.name}
-                        </div>
-                    </DialogDescription>
-                </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onToggleSave(job.id)}
-                    disabled={isSaving}
-                    aria-label="Salvar vaga"
-                >
-                    <Bookmark className={`h-6 w-6 ${isSaved ? 'text-blue-600 fill-current' : 'text-neutral-500'}`} />
-                </Button>
-            </div>
-        </DialogHeader>
-        
+      <DialogHeader>
+          <div className="flex justify-between items-start">
+              <div>
+                  <DialogTitle className="text-2xl font-bold text-neutral-900">{job.title}</DialogTitle>
+
+                  {/* CORREÇÃO AQUI: Voltamos para DialogDescription... */}
+                  <DialogDescription asChild className="pt-2 flex items-center gap-4 text-sm text-neutral-600">
+                  {/* Usamos "asChild" para forçar o DialogDescription a NÃO renderizar
+                    um <p> extra, e em vez disso usar a <div> abaixo como seu elemento.
+                    Esta é a solução mais robusta.
+                  */}
+                  <div>
+                      <span
+                          className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                              job.status === 'published' || job.status === 'open'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-neutral-100 text-neutral-800'
+                          }`}
+                      >
+                          {job.status}
+                      </span>
+
+                      {/* ...e agora usamos <div>s que são permitidas dentro da <div> pai */}
+                      {job.companyName && (
+                          <div className="flex items-center">
+                              <Building size={14} className="mr-1.5" /> {job.companyName}
+                          </div>
+                      )}
+
+                      {/* Usamos optional chaining aqui por segurança */}
+                      {job.institution?.name && (
+                          <div className="flex items-center">
+                              <MapPin size={14} className="mr-1.5" /> {job.institution.name}
+                          </div>
+                      )}
+                  </div>
+                  </DialogDescription>
+              </div>
+              <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onToggleSave(job.id)}
+                  disabled={isSaving}
+                  aria-label="Salvar vaga"
+              >
+                  <Bookmark className={`h-6 w-6 ${isSaved ? 'text-blue-600 fill-current' : 'text-neutral-500'}`} />
+              </Button>
+          </div>
+      </DialogHeader>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-4 text-sm text-neutral-700">
           <div className="flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-neutral-500" />
@@ -97,21 +108,12 @@ export const JobDetailModal = ({ job, isOpen, onClose, isSaved, onToggleSave, is
           </div>
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-neutral-500" />
-            <strong>Postado por:</strong> {job.author.firstName} {job.author.lastName}
+            <strong>Postado por:</strong> {job.author?.firstName} {job.author?.lastName}
           </div>
            <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-neutral-500" />
             <strong>Data:</strong> {formatDate(job.createdAt)}
           </div>
-          {job.company?.websiteUrl && (
-             <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-neutral-500" />
-                <strong>Website:</strong>
-                <a href={job.company.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                    Visitar
-                </a>
-             </div>
-          )}
         </div>
 
         <div className="mt-6">

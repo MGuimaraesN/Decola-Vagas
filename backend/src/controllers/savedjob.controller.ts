@@ -93,9 +93,9 @@ export class SavedJobController {
                 include: {
                     job: {
                         include: {
+                            author: true,
                             area: true,
                             category: true,
-                            company: true,
                             institution: {
                                 select: { name: true }
                             }

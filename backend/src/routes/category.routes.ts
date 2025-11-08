@@ -21,19 +21,19 @@ categoryRoutes.get(
 categoryRoutes.post(
     '/',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['admin', 'superadmin']),
+    rbacMiddleware.checkRole(['admin', 'superadmin', 'professor', 'coordenador']),
     categoryController.create
 );
 categoryRoutes.put(
     '/:id',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['admin', 'superadmin']),
+    rbacMiddleware.checkRole(['admin', 'superadmin', 'professor', 'coordenador']),
     categoryController.update
 );
 categoryRoutes.delete(
     '/:id',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['admin', 'superadmin']),
+    rbacMiddleware.checkRole(['admin', 'superadmin', 'professor', 'coordenador']),
     categoryController.delete
 );
 
