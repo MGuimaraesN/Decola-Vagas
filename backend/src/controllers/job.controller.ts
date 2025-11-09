@@ -234,31 +234,36 @@ export class JobController {
         }
     }
 
-    // --- NOVA FUNÇÃO ---
+    // --- FUNÇÃO ATUALIZADA ---
     async getPublicJobs(req: Request, res: Response) {
         try {
             const { search, areaId, categoryId } = req.query;
 
-            const whereClause: Prisma.JobWhereInput = {
-                isPublic: true,
+            // 1. Define os filtros básicos (status e query params)
+            const whereFilters: Prisma.JobWhereInput = {
+                status: { in: ['published', 'open'] } // Só queremos vagas ativas
             };
 
             if (search) {
-                whereClause.title = {
+                whereFilters.title = {
                     contains: search as string,
                 };
             }
 
             if (areaId) {
-                whereClause.areaId = parseInt(areaId as string);
+                whereFilters.areaId = parseInt(areaId as string);
             }
 
             if (categoryId) {
-                whereClause.categoryId = parseInt(categoryId as string);
+                whereFilters.categoryId = parseInt(categoryId as string);
             }
 
-            const jobs = await prisma.job.findMany({
-                where: whereClause,
+            // 2. Busca TODAS as vagas de Empresa (isPublic: true)
+            const publicJobs = await prisma.job.findMany({
+                where: {
+                    ...whereFilters,
+                    isPublic: true,
+                },
                 include: {
                     area: true,
                     category: true,
@@ -269,15 +274,44 @@ export class JobController {
                 orderBy: {
                     createdAt: 'desc'
                 },
-                take: 20 // Limita a 20 vagas
+                // Removemos o 'take' para buscar todas as vagas de empresa
             });
+
+            // 3. Busca ALGUMAS vagas de Instituição (isPublic: false)
+            // Vamos pegar as 5 mais recentes para misturar.
+            const institutionJobs = await prisma.job.findMany({
+                where: {
+                    ...whereFilters,
+                    isPublic: false,
+                },
+                include: {
+                    area: true,
+                    category: true,
+                    institution: {
+                        select: { name: true }
+                    },
+                },
+                orderBy: {
+                    createdAt: 'desc'
+                },
+                take: 5 // Pegamos 5 vagas recentes de instituições
+            });
+
+            // 4. Combina as duas listas
+            let allJobs = [...publicJobs, ...institutionJobs];
+
+            // 5. Reordena a lista combinada por data de criação
+            allJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+            // 6. Aplica o limite de 20 (que existia antes) à lista combinada
+            const jobs = allJobs.slice(0, 20);
+
             res.status(200).json(jobs);
         } catch (error) {
             console.error('Erro ao buscar vagas públicas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }
-
     async getById(req: Request, res: Response) {
         const { id } = req.params;
         const authorId = (req as any).user?.userId;
