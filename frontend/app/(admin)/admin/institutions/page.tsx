@@ -163,12 +163,14 @@ export default function InstitutionsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    // Div container removida para preencher o layout
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gerenciamento de Instituições</h1>
         <Button onClick={() => openModal()}>Nova Instituição</Button>
       </div>
-      <div className="rounded-lg border">
+      {/* Card padronizado em volta da tabela */}
+      <div className="bg-white rounded-lg shadow-sm border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -241,6 +243,6 @@ export default function InstitutionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

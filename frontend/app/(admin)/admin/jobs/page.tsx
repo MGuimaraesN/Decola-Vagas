@@ -114,7 +114,8 @@ export default function AdminJobsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    // Div container removida para preencher o layout
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gerenciamento de Todas as Vagas</h1>
         {/* ALTERAÇÃO AQUI: Link aponta para a nova página de criação do admin */}
@@ -122,7 +123,8 @@ export default function AdminJobsPage() {
           <Link href="/admin/jobs/new">Criar Nova Vaga</Link>
         </Button>
       </div>
-      <div className="rounded-lg border">
+      {/* Card padronizado em volta da tabela */}
+      <div className="bg-white rounded-lg shadow-sm border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -178,6 +180,6 @@ export default function AdminJobsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

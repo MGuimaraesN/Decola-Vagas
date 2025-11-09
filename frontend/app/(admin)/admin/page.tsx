@@ -38,7 +38,8 @@ function StatCard({
   colorClass: string;
 }) {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm flex items-center gap-4">
+    // Card padronizado com borda
+    <div className="bg-white p-6 rounded-lg shadow-sm flex items-center gap-4 border border-neutral-200/60">
       <div
         className={`p-3 rounded-full ${colorClass} bg-opacity-10`}
       >
@@ -102,7 +103,8 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-neutral-900 mb-6">
+      {/* Título padronizado */}
+      <h1 className="text-2xl font-bold text-neutral-900 mb-6">
         Dashboard
       </h1>
 

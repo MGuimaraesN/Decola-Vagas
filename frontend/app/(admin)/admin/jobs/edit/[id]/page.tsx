@@ -5,6 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+{/* Importação do Textarea */}
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -131,9 +133,12 @@ export default function AdminEditJobPage() {
   }
 
   return (
+    // Container máximo e centralizado para formulários
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-neutral-900">Editar Vaga (Admin)</h1>
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6">
+      {/* Título padronizado */}
+      <h1 className="text-2xl font-bold mb-6 text-neutral-900">Editar Vaga</h1>
+      {/* Card padronizado em volta do formulário */}
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6 border border-neutral-200/60">
 
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">Título da Vaga</label>
@@ -142,7 +147,14 @@ export default function AdminEditJobPage() {
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição Completa</label>
-          <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className="w-full p-2 border border-input rounded-md min-h-[150px] text-sm" required />
+          {/* Componente Textarea aplicado */}
+          <Textarea 
+            id="description" 
+            value={description} 
+            onChange={e => setDescription(e.target.value)} 
+            className="min-h-[150px]" 
+            required 
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

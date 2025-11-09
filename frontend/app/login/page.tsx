@@ -7,6 +7,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Building, LogIn } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
+// --- IMPORTAÇÕES ADICIONADAS ---
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+// --- FIM DAS IMPORTAÇÕES ---
 
 const LOGIN_API_URL = 'http://localhost:5000/auth/login';
 
@@ -117,8 +121,8 @@ export default function LoginPage() {
     <>
       <Toaster richColors />
       <div className="flex min-h-screen w-full bg-neutral-50">
-        {/* Lado Esquerdo (Branding) */}
-        <div className="hidden min-h-screen w-1/2 flex-col justify-between bg-neutral-900 p-10 text-white lg:flex">
+        {/* Lado Esquerdo (Branding) - COM GRADIENTE SUTIL */}
+        <div className="hidden min-h-screen w-1/2 flex-col justify-between bg-gradient-to-br from-neutral-900 to-gray-900 p-10 text-white lg:flex">
           <Link href="/" className="flex items-center gap-2">
             <Building className="h-6 w-6 text-blue-400" />
             <span className="text-xl font-bold">Decola Vagas</span>
@@ -156,39 +160,40 @@ export default function LoginPage() {
               Bem-vindo de volta!
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {/* --- FORMULÁRIO ATUALIZADO --- */}
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label
                   htmlFor="email"
-                  className="block text-sm font-medium text-neutral-700"
+                  className="block text-sm font-medium text-neutral-700 mb-1"
                 >
                   Email
                 </label>
-                <input
+                {/* --- SUBSTITUÍDO POR COMPONENT UI --- */}
+                <Input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
                   required
-                  className="mt-1 block w-full rounded-md border border-neutral-300 bg-white p-3 text-neutral-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
               <div>
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-neutral-700"
+                  className="block text-sm font-medium text-neutral-700 mb-1"
                 >
                   Senha
                 </label>
-                <input
+                {/* --- SUBSTITUÍDO POR COMPONENT UI --- */}
+                <Input
                   type="password"
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="mt-1 block w-full rounded-md border border-neutral-300 bg-white p-3 text-neutral-900 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
 
@@ -199,10 +204,12 @@ export default function LoginPage() {
               )}
 
               <div>
-                <button
+                {/* --- SUBSTITUÍDO POR COMPONENT UI --- */}
+                <Button
                   type="submit"
                   disabled={isLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                  className="w-full gap-2"
+                  size="lg"
                 >
                   {isLoading ? (
                     'Entrando...'
@@ -212,9 +219,10 @@ export default function LoginPage() {
                       Entrar
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </form>
+            {/* --- FIM DO FORMULÁRIO ATUALIZADO --- */}
 
             <p className="mt-8 text-center text-sm text-neutral-600">
               Não tem uma conta?{' '}

@@ -54,9 +54,7 @@ interface Institution {
 }
 
 interface UserInstitutionRole {
-  // --- INÍCIO DA CORREÇÃO ---
-  id: number; // A propriedade é 'id', não 'userInstitutionRoleId'
-  // --- FIM DA CORREÇÃO ---
+  id: number; 
   institution: Institution;
   role: Role;
 }
@@ -179,13 +177,10 @@ export default function UsersPage() {
   const handleRemoveRole = async (userInstitutionRoleId: number) => {
     if (!token || !selectedUser) return;
 
-    // --- INÍCIO DA CORREÇÃO ---
-    // Adicionar verificação para garantir que o ID é válido
     if (!userInstitutionRoleId) {
         toast.error("ID do cargo não encontrado. Não é possível remover.");
         return;
     }
-    // --- FIM DA CORREÇÃO ---
 
     try {
       const res = await fetch(`${API_BASE_URL}/admin/users/remove-role/${userInstitutionRoleId}`, {
@@ -198,9 +193,7 @@ export default function UsersPage() {
 
         // Optimistically update the UI
         const updatedInstitutions = selectedUser.institutions.filter(
-          // --- INÍCIO DA CORREÇÃO ---
-          (instRole) => instRole.id !== userInstitutionRoleId // Usar .id
-          // --- FIM DA CORREÇÃO ---
+          (instRole) => instRole.id !== userInstitutionRoleId
         );
         const updatedUser = { ...selectedUser, institutions: updatedInstitutions };
         setSelectedUser(updatedUser);
@@ -282,12 +275,14 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    // Div container removida para preencher o layout
+    <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gerenciamento de Usuários</h1>
         <Button onClick={() => setIsCreateModalOpen(true)}>Novo Usuário</Button>
       </div>
-      <div className="rounded-lg border">
+      {/* Card padronizado em volta da tabela */}
+      <div className="bg-white rounded-lg shadow-sm border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -328,16 +323,12 @@ export default function UsersPage() {
             <h4 className="font-semibold mb-2">Cargos Atuais</h4>
             <div className="space-y-2">
               {selectedUser?.institutions.map((instRole) => (
-                // --- INÍCIO DA CORREÇÃO ---
                 <div key={instRole.id} className="flex justify-between items-center p-2 rounded-md border">
-                {/* --- FIM DA CORREÇÃO --- */}
                   <span>{instRole.institution.name} - <strong>{instRole.role.name}</strong></span>
                   <Button
                     variant="destructive"
                     size="sm"
-                    // --- INÍCIO DA CORREÇÃO ---
-                    onClick={() => handleRemoveRole(instRole.id)} // Usar .id
-                    // --- FIM DA CORREÇÃO ---
+                    onClick={() => handleRemoveRole(instRole.id)} 
                   >
                     Remover
                   </Button>
@@ -481,6 +472,6 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

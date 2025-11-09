@@ -1,4 +1,4 @@
-// Salve em: frontend/app/(admin)/admin/areas/page.tsx
+// Salve em: frontend/app/(admin)/admin/categories/page.tsx
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -34,22 +34,22 @@ import {
   TableCell,
 } from '@/components/ui/table';
 
-// Definindo a interface para uma Área
-interface Area {
+// Definindo a interface para uma Categoria
+interface Category {
   id: number;
   name: string;
 }
 
-const API_URL = 'http://localhost:5000/areas';
+const API_URL = 'http://localhost:5000/categories';
 
-export default function AreasPage() {
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
-  const [areaToDelete, setAreaToDelete] = useState<Area | null>(null);
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [editAreaName, setEditAreaName] = useState('');
+  const [editCategoryName, setEditCategoryName] = useState('');
 
   const { token } = useAuth();
 
@@ -66,12 +66,12 @@ export default function AreasPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAreas(data);
+        setCategories(data);
       } else {
-        toast.error('Falha ao buscar áreas.');
+        toast.error('Falha ao buscar categorias.');
       }
     } catch (error) {
-      toast.error('Erro de rede ao buscar áreas.');
+      toast.error('Erro de rede ao buscar categorias.');
     } finally {
       setIsLoading(false);
     }
@@ -83,26 +83,26 @@ export default function AreasPage() {
   }, [token]);
 
   // Funções do Modal
-  const openModal = (area: Area | null = null) => {
-    setSelectedArea(area);
-    setEditAreaName(area ? area.name : '');
+  const openModal = (category: Category | null = null) => {
+    setSelectedCategory(category);
+    setEditCategoryName(category ? category.name : '');
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedArea(null);
-    setEditAreaName('');
+    setSelectedCategory(null);
+    setEditCategoryName('');
   };
 
   // Funções do AlertDialog
-  const openAlertDialog = (area: Area) => {
-    setAreaToDelete(area);
+  const openAlertDialog = (category: Category) => {
+    setCategoryToDelete(category);
     setIsAlertDialogOpen(true);
   };
 
   const closeAlertDialog = () => {
-    setAreaToDelete(null);
+    setCategoryToDelete(null);
     setIsAlertDialogOpen(false);
   };
 
@@ -111,8 +111,8 @@ export default function AreasPage() {
     e.preventDefault();
     if (!token) return;
 
-    const url = selectedArea ? `${API_URL}/${selectedArea.id}` : API_URL;
-    const method = selectedArea ? 'PUT' : 'POST';
+    const url = selectedCategory ? `${API_URL}/${selectedCategory.id}` : API_URL;
+    const method = selectedCategory ? 'PUT' : 'POST';
 
     try {
       const res = await fetch(url, {
@@ -121,40 +121,40 @@ export default function AreasPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: editAreaName }),
+        body: JSON.stringify({ name: editCategoryName }),
       });
 
       if (res.ok) {
-        toast.success(`Área ${selectedArea ? 'atualizada' : 'criada'} com sucesso!`);
+        toast.success(`Categoria ${selectedCategory ? 'atualizada' : 'criada'} com sucesso!`);
         closeModal();
         fetchData(); // Re-fetch
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Falha ao salvar área.');
+        toast.error(data.error || 'Falha ao salvar categoria.');
       }
     } catch (error) {
-      toast.error('Erro de rede ao salvar área.');
+      toast.error('Erro de rede ao salvar categoria.');
     }
   };
 
   const handleDelete = async () => {
-    if (!token || !areaToDelete) return;
+    if (!token || !categoryToDelete) return;
 
     try {
-      const res = await fetch(`${API_URL}/${areaToDelete.id}`, {
+      const res = await fetch(`${API_URL}/${categoryToDelete.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.ok) {
-        toast.success('Área excluída com sucesso!');
+        toast.success('Categoria excluída com sucesso!');
         closeAlertDialog();
         fetchData(); // Re-fetch
       } else {
-        toast.error('Falha ao excluir área.');
+        toast.error('Falha ao excluir categoria.');
       }
     } catch (error) {
-      toast.error('Erro de rede ao excluir área.');
+      toast.error('Erro de rede ao excluir categoria.');
     }
   };
 
@@ -163,12 +163,14 @@ export default function AreasPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    // Div container removida para preencher o layout
+    <>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gerenciamento de Áreas</h1>
-        <Button onClick={() => openModal()}>Nova Área</Button>
+        <h1 className="text-2xl font-bold">Gerenciamento de Categorias</h1>
+        <Button onClick={() => openModal()}>Nova Categoria</Button>
       </div>
-      <div className="rounded-lg border">
+      {/* Card padronizado em volta da tabela */}
+      <div className="bg-white rounded-lg shadow-sm border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -177,14 +179,14 @@ export default function AreasPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {areas.map((area) => (
-              <TableRow key={area.id}>
-                <TableCell>{area.name}</TableCell>
+            {categories.map((category) => (
+              <TableRow key={category.id}>
+                <TableCell>{category.name}</TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => openModal(area)}>
+                  <Button variant="outline" size="sm" onClick={() => openModal(category)}>
                     Editar
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(area)}>
+                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(category)}>
                     Excluir
                   </Button>
                 </TableCell>
@@ -197,21 +199,21 @@ export default function AreasPage() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{selectedArea ? 'Editar' : 'Nova'} Área</DialogTitle>
+            <DialogTitle>{selectedCategory ? 'Editar' : 'Nova'} Categoria</DialogTitle>
             <DialogDescription>
-              Preencha os dados para {selectedArea ? 'atualizar a' : 'criar uma nova'} área.
+              Preencha os dados para {selectedCategory ? 'atualizar a' : 'criar uma nova'} categoria.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSave}>
             <div className="py-4">
-              <label htmlFor="areaName" className="block text-sm font-medium mb-1">
-                Nome da Área
+              <label htmlFor="categoryName" className="block text-sm font-medium mb-1">
+                Nome da Categoria
               </label>
               <Input
-                id="areaName"
+                id="categoryName"
                 type="text"
-                value={editAreaName}
-                onChange={(e) => setEditAreaName(e.target.value)}
+                value={editCategoryName}
+                onChange={(e) => setEditCategoryName(e.target.value)}
                 required
               />
             </div>
@@ -232,7 +234,7 @@ export default function AreasPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a área "{areaToDelete?.name}".
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente a categoria "{categoryToDelete?.name}".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -241,6 +243,6 @@ export default function AreasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
