@@ -1,3 +1,5 @@
+// mguimaraesn/decola-vagas/Decola-Vagas-refactor-auth-logic/frontend/app/(admin)/admin/layout.tsx
+
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
@@ -13,11 +15,10 @@ import {
   Network,
   Shield,
   LayoutDashboard,
+  Briefcase, // Importado
 } from 'lucide-react';
 
 // Links de navegação do Admin
-import { Briefcase } from 'lucide-react';
-
 const allAdminLinks: NavLink[] = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
   { href: '/admin/users', label: 'Usuários', icon: Users, roles: ['admin', 'superadmin'] },
@@ -39,17 +40,34 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const activeInstitution = user.institutions.find(
-        (inst) => inst.institution.id === user.activeInstitutionId
+      // --- INÍCIO DA LÓGICA CORRIGIDA (GUARDIÃO) ---
+
+      // 1. Verificar se o usuário tem permissão global (admin/superadmin)
+      // Usamos 'some' para verificar se ele tem esse cargo EM QUALQUER instituição
+      const isGlobalAdmin = user.institutions.some(
+        (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
       );
 
-      if (
-        !activeInstitution ||
-        !['admin', 'superadmin', 'professor', 'coordenador'].includes(activeInstitution.role.name)
-      ) {
-        // Se não for admin, manda para o dashboard normal
-        router.push('/dashboard');
+      if (isGlobalAdmin) {
+        return; // Permite acesso
       }
+
+      // 2. Se não for, verificar permissão por instituição ativa
+      const activeInstitution = user.institutions.find(
+        (inst: any) => inst.institution.id === user.activeInstitutionId
+      );
+      const activeRole = activeInstitution?.role.name;
+
+      if (
+        activeRole &&
+        ['professor', 'coordenador'].includes(activeRole)
+      ) {
+        return; // Permite acesso
+      }
+      // --- FIM DA LÓGICA CORRIGIDA (GUARDIÃO) ---
+
+      // 3. Se não tiver permissão, redireciona
+      router.push('/dashboard');
     }
   }, [user, loading, router]);
 
@@ -61,16 +79,24 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
     );
   }
 
-  // Se o usuário é admin, renderiza o layout
-  const activeInstitution = user.institutions.find(
-    (inst) => inst.institution.id === user.activeInstitutionId
+  // --- Renderização (também precisa ser corrigida) ---
+  const isGlobalAdminCheck = user.institutions.some(
+    (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
   );
-  if (
-    activeInstitution &&
-    ['admin', 'superadmin', 'professor', 'coordenador'].includes(activeInstitution.role.name)
-  ) {
+
+  const activeInstitutionCheck = user.institutions.find(
+    (inst: any) => inst.institution.id === user.activeInstitutionId
+  );
+  const activeRoleCheck = activeInstitutionCheck?.role.name;
+
+  const hasPermission =
+    isGlobalAdminCheck ||
+    (activeRoleCheck && ['professor', 'coordenador'].includes(activeRoleCheck));
+
+  if (hasPermission) {
     return <>{children}</>;
   }
+  // --- Fim da correção de renderização ---
 
   // Fallback caso a lógica de effect não tenha redirecionado a tempo
   return (
@@ -83,30 +109,41 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
-  const activeInstitution = user?.institutions.find(
-    (inst) => inst.institution.id === user.activeInstitutionId
-  );
-  const activeRole = activeInstitution?.role.name;
+  // --- INÍCIO DA CORREÇÃO DA SIDEBAR VAZIA ---
 
-  const filteredLinks = allAdminLinks.filter(
-    (link) => link.roles?.includes(activeRole || '')
+  // 1. Verificar se o usuário é superadmin (cargo global)
+  const isSuperAdmin = user?.institutions.some(
+    (inst: any) => inst.role.name === 'superadmin'
   );
+
+  let filteredLinks: NavLink[];
+
+  if (isSuperAdmin) {
+    // Superadmin vê TUDO, independente da instituição ativa
+    filteredLinks = allAdminLinks;
+  } else {
+    // Outros cargos (admin, professor) veem links baseados no cargo ATIVO
+    const activeInstitution = user?.institutions.find(
+      (inst) => inst.institution.id === user.activeInstitutionId
+    );
+    const activeRole = activeInstitution?.role.name;
+
+    filteredLinks = allAdminLinks.filter(
+      (link) => link.roles?.includes(activeRole || '')
+    );
+  }
+  // --- FIM DA CORREÇÃO DA SIDEBAR VAZIA ---
 
   return (
     <AdminAuthGuard>
       <div className="flex min-h-screen w-full bg-white">
-        {/* Sidebar Unificada */}
         <Sidebar
           title="Decola Admin"
           icon={Shield}
-          navLinks={filteredLinks}
+          navLinks={filteredLinks} // Usar links filtrados corretamente
         />
-
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header Unificado */}
           <Header />
-
-          {/* Content */}
           <main className="flex-1 overflow-y-auto bg-neutral-50 p-6 md:p-10">
             <Toaster richColors />
             {children}

@@ -20,7 +20,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   activeInstitutionId: number | null;
-  login: (token: string) => void;
+  login: (token: string) => Promise<User | null>;
   logout: () => void;
   fetchUserProfile: () => Promise<void>;
   setActiveInstitutionId: (id: number | null) => void;
@@ -75,11 +75,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = await res.json();
         setUser(userData);
         setActiveInstitutionId(userData.activeInstitutionId);
-        if (userData.institutions[0].role.name === 'admin' || userData.institutions[0].role.name === 'superadmin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
       } else {
         logout();
       }
@@ -97,9 +92,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [token]);
 
-  const login = (newToken: string) => {
+  const login = async (newToken: string): Promise<User | null> => {
     localStorage.setItem('access_token', newToken);
     setToken(newToken);
+
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${newToken}`,
+        },
+      });
+
+      if (res.ok) {
+        const userData = await res.json();
+        setUser(userData);
+        setActiveInstitutionId(userData.activeInstitutionId);
+        return userData;
+      } else {
+        logout();
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile after login:', error);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+    return null;
   };
 
   const logout = () => {

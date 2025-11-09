@@ -98,5 +98,5 @@ model UserInstitutionRole {
   roleId        Int
   role          Role        @relation(fields: [roleId], references: [id])
 
-  @@unique([userId, institutionId, roleId])
+  @@unique([userId, institutionId])
 }

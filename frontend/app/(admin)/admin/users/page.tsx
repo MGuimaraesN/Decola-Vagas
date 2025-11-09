@@ -1,4 +1,5 @@
-// Salve em: frontend/app/(admin)/admin/users/page.tsx
+// mguimaraesn/decola-vagas/Decola-Vagas-refactor-auth-logic/frontend/app/(admin)/admin/users/page.tsx
+
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
@@ -53,7 +54,9 @@ interface Institution {
 }
 
 interface UserInstitutionRole {
-  userInstitutionRoleId: number;
+  // --- INÍCIO DA CORREÇÃO ---
+  id: number; // A propriedade é 'id', não 'userInstitutionRoleId'
+  // --- FIM DA CORREÇÃO ---
   institution: Institution;
   role: Role;
 }
@@ -176,6 +179,14 @@ export default function UsersPage() {
   const handleRemoveRole = async (userInstitutionRoleId: number) => {
     if (!token || !selectedUser) return;
 
+    // --- INÍCIO DA CORREÇÃO ---
+    // Adicionar verificação para garantir que o ID é válido
+    if (!userInstitutionRoleId) {
+        toast.error("ID do cargo não encontrado. Não é possível remover.");
+        return;
+    }
+    // --- FIM DA CORREÇÃO ---
+
     try {
       const res = await fetch(`${API_BASE_URL}/admin/users/remove-role/${userInstitutionRoleId}`, {
         method: 'DELETE',
@@ -187,7 +198,9 @@ export default function UsersPage() {
 
         // Optimistically update the UI
         const updatedInstitutions = selectedUser.institutions.filter(
-          (instRole) => instRole.userInstitutionRoleId !== userInstitutionRoleId
+          // --- INÍCIO DA CORREÇÃO ---
+          (instRole) => instRole.id !== userInstitutionRoleId // Usar .id
+          // --- FIM DA CORREÇÃO ---
         );
         const updatedUser = { ...selectedUser, institutions: updatedInstitutions };
         setSelectedUser(updatedUser);
@@ -315,12 +328,16 @@ export default function UsersPage() {
             <h4 className="font-semibold mb-2">Cargos Atuais</h4>
             <div className="space-y-2">
               {selectedUser?.institutions.map((instRole) => (
-                <div key={`${instRole.institution.id}-${instRole.role.id}`} className="flex justify-between items-center p-2 rounded-md border">
+                // --- INÍCIO DA CORREÇÃO ---
+                <div key={instRole.id} className="flex justify-between items-center p-2 rounded-md border">
+                {/* --- FIM DA CORREÇÃO --- */}
                   <span>{instRole.institution.name} - <strong>{instRole.role.name}</strong></span>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleRemoveRole(instRole.userInstitutionRoleId)}
+                    // --- INÍCIO DA CORREÇÃO ---
+                    onClick={() => handleRemoveRole(instRole.id)} // Usar .id
+                    // --- FIM DA CORREÇÃO ---
                   >
                     Remover
                   </Button>

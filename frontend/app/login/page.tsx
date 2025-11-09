@@ -39,9 +39,54 @@ export default function LoginPage() {
 
       if (res.ok) {
         const data = await res.json();
-        login(data.access_token);
         toast.success('Login realizado com sucesso!');
-        // O AuthProvider irá redirecionar
+
+        // Await login para pegar os dados do usuário
+        const userData = await login(data.access_token);
+
+        if (userData) {
+          // Lógica de redirecionamento movida para cá
+          const isGlobalAdmin = userData.institutions.some(
+            (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
+          );
+
+          if (isGlobalAdmin) {
+            router.push('/admin');
+            return;
+          }
+
+          // Se o usuário não for global admin, verificamos o cargo da instituição ativa
+          if (userData.activeInstitutionId) {
+            const activeInstitution = userData.institutions.find(
+              (inst: any) => inst.institutionId === userData.activeInstitutionId
+            );
+            const activeRole = activeInstitution?.role.name;
+
+            if (['professor', 'coordenador'].includes(activeRole)) {
+              router.push('/admin');
+            } else {
+              router.push('/dashboard');
+            }
+          } else {
+            // NOVO: Se não houver instituição ativa (primeiro login)
+            // Verificamos se ele é professor/coordenador em QUALQUER instituição
+            const isProfessorOrCoordenador = userData.institutions.some(
+              (inst: any) => ['professor', 'coordenador'].includes(inst.role.name)
+            );
+
+            if (isProfessorOrCoordenador) {
+              router.push('/admin'); // Redireciona para o admin para escolher a instituição
+            } else {
+              router.push('/dashboard'); // Caso contrário, vai para o dashboard normal
+            }
+          }
+        } else {
+          // Caso o login dê certo mas o fetch de profile falhe
+          const profileError = 'Falha ao carregar seu perfil. Tente novamente.';
+          setError(profileError);
+          toast.error(profileError);
+        }
+
       } else {
         const data = await res.json();
         const errorMessage =

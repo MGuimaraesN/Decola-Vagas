@@ -1,3 +1,5 @@
+// mguimaraesn/decola-vagas/Decola-Vagas-refactor-auth-logic/backend/src/controllers/admin.controller.ts
+
 import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
 import bcrypt from 'bcrypt';
@@ -8,9 +10,9 @@ export class AdminController {
     try {
         const { firstName, lastName, email, password, institutionId, roleId } = req.body;
         
-        if (!email || !password || !institutionId) {
+        if (!email || !password || !institutionId || !roleId) {
           return res.status(400).json(
-            {error: 'Email, senha e instituição são obrigatórios'}
+            {error: 'Email, senha, instituição e cargo são obrigatórios'}
         )};
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -31,7 +33,10 @@ export class AdminController {
             lastName: lastName,
             email: email,
             password: hashedPassword,
-            ip: ipUser
+            ip: ipUser,
+            // --- CORREÇÃO AQUI ---
+            activeInstitutionId: institutionId // Define a primeira instituição como ativa
+            // --- FIM DA CORREÇÃO ---
           }});
 
         await prisma.userInstitutionRole.create({
@@ -102,21 +107,34 @@ export class AdminController {
     }
   }
 
-  async assignRoleToUser(req: Request, res: Response) {
-    try {
-      const { userId, institutionId, roleId } = req.body;
-      const userInstitutionRole = await prisma.userInstitutionRole.create({
-        data: {
-          userId,
-          institutionId,
-          roleId,
-        },
-      });
-      res.json(userInstitutionRole);
-    } catch (error) {
-      res.status(500).json({'Erro ao atribuir cargo ao usuário.': error});
+    async assignRoleToUser(req: Request, res: Response) {
+        try {
+          const { userId, institutionId, roleId } = req.body;
+
+          // Lógica de "upsert": atualiza se existir, cria se não existir
+          const userInstitutionRole = await prisma.userInstitutionRole.upsert({
+            where: {
+              userId_institutionId: {
+                userId,
+                institutionId,
+              },
+            },
+            update: {
+              roleId,
+            },
+            create: {
+              userId,
+              institutionId,
+              roleId,
+            },
+          });
+
+          res.json(userInstitutionRole);
+        } catch (error) {
+            console.error('Erro ao atribuir/atualizar cargo:', error);
+            res.status(500).json({'Erro ao atribuir cargo ao usuário.': error});
+        }
     }
-  }
 
   async removeRoleFromUser(req: Request, res: Response) {
     try {
@@ -133,11 +151,33 @@ export class AdminController {
   async deleteUser(req: Request, res: Response) {
     try {
       const { id } = req.params;
+
+      // --- Adicionado para consistência de dados ---
+      // 1. Deletar vínculos de UserInstitutionRole
+      await prisma.userInstitutionRole.deleteMany({
+        where: { userId: Number(id) },
+      });
+
+      // 2. Deletar Vagas Salvas
+       await prisma.savedJob.deleteMany({
+        where: { userId: Number(id) },
+      });
+
+      // 3. Deletar Vagas Criadas (ou anonimizar, mas deletar é mais simples)
+       await prisma.job.deleteMany({
+        where: { authorId: Number(id) },
+      });
+      // --- Fim da adição ---
+
+      // 4. Deletar o usuário
       await prisma.user.delete({
         where: { id: Number(id) },
       });
       res.status(204).send();
     } catch (error) {
+       if ((error as any).code === 'P2025') {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+       }
       res.status(500).json({'Erro ao deletar usuário.': error});
     }
   }
