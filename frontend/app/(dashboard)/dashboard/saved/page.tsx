@@ -18,6 +18,11 @@ interface Job {
   company?: { name: string };
   institution: { name: string };
   createdAt: string;
+  // --- ADICIONE ESTAS TRÊS LINHAS ---
+  email: string;
+  telephone: string;
+  author: { firstName: string; lastName: string };
+  // --- FIM DA ADIÇÃO ---
 }
 
 const API_URL = 'http://localhost:5000/saved-jobs/my-saved';
@@ -27,6 +32,7 @@ export default function SavedJobsPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchSavedJobs = async () => {
@@ -54,6 +60,33 @@ export default function SavedJobsPage() {
 
     fetchSavedJobs();
   }, [token]);
+
+  // --- ADICIONE ESTA FUNÇÃO ---
+  const handleUnsaveJob = async (jobId: number) => {
+  if (isSaving || !token) return;
+  setIsSaving(true);
+
+  try {
+    const res = await fetch(`http://localhost:5000/saved-jobs/${jobId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      toast.success('Vaga removida das salvas!');
+      // Remove o job da lista local
+      setSavedJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+      // Fecha o modal
+      setSelectedJob(null);
+    } else {
+      toast.error('Falha ao remover vaga.');
+    }
+  } catch (error) {
+    toast.error('Erro de rede.');
+  } finally {
+    setIsSaving(false);
+  }
+  };
 
   if (isLoading) {
     return <div>Carregando vagas salvas...</div>;
@@ -102,13 +135,18 @@ export default function SavedJobsPage() {
           ))}
         </div>
       )}
-
+      
       {selectedJob && (
-        <JobDetailModal
-          job={selectedJob}
-          isOpen={!!selectedJob}
-          onClose={() => setSelectedJob(null)}
-        />
+              <JobDetailModal
+            job={selectedJob}
+        isOpen={!!selectedJob}
+            onClose={() => setSelectedJob(null)}
+            // --- PROPS ADICIONADAS ---
+            isSaved={true}
+            onToggleSave={handleUnsaveJob}
+            isSaving={isSaving}
+            // --- FIM DAS PROPS ADICIONADAS ---
+          />
       )}
     </div>
   );

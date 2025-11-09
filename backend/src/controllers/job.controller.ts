@@ -219,6 +219,9 @@ export class JobController {
                     },
                     area: true,
                     category: true,
+                    institution: {
+                        select: { name: true }
+                    }
                 },
                 orderBy: {
                     createdAt: 'desc' // Ordena por mais recente

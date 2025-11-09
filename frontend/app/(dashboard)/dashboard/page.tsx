@@ -30,6 +30,8 @@ interface Job {
   area: { name: string };
   category: { name: string };
   author: { firstName: string; lastName: string };
+  companyName?: string | null;
+  institution: { name: string };
 }
 
 // Componente de Cartão de Estatística
@@ -187,8 +189,10 @@ export default function DashboardPage() {
     fetchSavedIds(); // Chamada separada
   }, [token, activeInstitutionId, filters]); // Adicionado filters
 
-  const handleToggleSaveJob = async (jobId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que o modal da vaga abra
+    const handleToggleSaveJob = async (jobId: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Impede que o modal da vaga abra
+    }
     if (isSaving) return;
     setIsSaving(true);
 
@@ -397,7 +401,7 @@ export default function DashboardPage() {
             isOpen={!!selectedJob}
             onClose={() => setSelectedJob(null)}
             isSaved={savedJobIds.has(selectedJob.id)}
-            onToggleSave={(jobId) => handleToggleSaveJob(jobId, new MouseEvent('click'))} // Simula um evento
+            onToggleSave={(jobId) => handleToggleSaveJob(jobId)}
             isSaving={isSaving || isLoadingSavedJobs}
         />
        )}

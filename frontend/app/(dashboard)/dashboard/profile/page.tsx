@@ -18,7 +18,7 @@ const initialProfileState = {
 };
 
 export default function ProfilePage() {
-  const { user, token, reloadUserData } = useAuth(); // Usando reloadUserData do contexto
+  const { user, token, fetchUserProfile } = useAuth(); // Usando fetchUserProfile do contexto
 
   // State para o formulário de perfil
   const [profileData, setProfileData] = useState(initialProfileState);
@@ -81,7 +81,7 @@ export default function ProfilePage() {
 
       if (res.ok) {
         toast.success('Perfil atualizado com sucesso!');
-        reloadUserData?.(); // Atualiza os dados do usuário no contexto
+        fetchUserProfile();
       } else {
         const data = await res.json();
         toast.error(data.error || 'Falha ao atualizar o perfil.');

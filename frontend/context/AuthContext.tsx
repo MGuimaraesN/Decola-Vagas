@@ -4,6 +4,7 @@ import { createContext, useState, useEffect, ReactNode, useContext } from 'react
 import { useRouter } from 'next/navigation';
 
 // Define a interface para os dados do usuário
+// Define a interface para os dados do usuário
 interface User {
   userId: number;
   firstName: string;
@@ -12,6 +13,14 @@ interface User {
   institutions: any[]; // Defina uma interface mais específica se necessário
   activeInstitutionId: number | null;
   role: { name: string };
+  // --- ADICIONE ESTAS LINHAS ---
+  bio?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
+  portfolioUrl?: string | null;
+  course?: string | null;
+  graduationYear?: number | null;
+  // --- FIM DA ADIÇÃO ---
 }
 
 // Define a interface para o contexto de autenticação
