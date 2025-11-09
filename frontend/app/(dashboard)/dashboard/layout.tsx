@@ -18,9 +18,9 @@ import Header from '@/components/layout/Header'; // Importando o Header unificad
 // --- INÍCIO DA LÓGICA CORRIGIDA ---
 // Links de navegação do Dashboard com 'roles'
 const allNavLinks: NavLink[] = [
-  { href: '/dashboard', label: 'Mural', icon: LayoutDashboard, roles: ['student', 'professor', 'coordenador', 'admin', 'superadmin', 'empresa'] },
-  { href: '/dashboard/saved', label: 'Vagas Salvas', icon: Bookmark, roles: ['student', 'professor', 'coordenador', 'admin', 'superadmin', 'empresa'] }, // Apenas para 'student'
-  { href: '/dashboard/profile', label: 'Meu Perfil', icon: User, roles: ['student', 'professor', 'coordenador', 'admin', 'superadmin', 'empresa'] },
+  { href: '/dashboard', label: 'Mural', icon: LayoutDashboard, roles: ['student', 'professor', 'coordenador', 'empresa','admin', 'superadmin', 'empresa'] },
+  { href: '/dashboard/saved', label: 'Vagas Salvas', icon: Bookmark, roles: ['student', 'professor', 'coordenador', 'empresa', 'admin', 'superadmin', 'empresa'] }, // Apenas para 'student'
+  { href: '/dashboard/profile', label: 'Meu Perfil', icon: User, roles: ['student', 'professor', 'coordenador', 'empresa','admin', 'superadmin', 'empresa'] },
 ];
 // --- FIM DA LÓGICA CORRIGIDA ---
 

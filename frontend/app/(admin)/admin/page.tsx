@@ -3,14 +3,25 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { Users, Building, Briefcase } from 'lucide-react';
+import { Users, Building, Briefcase, CheckCircle, Edit3, Loader2 } from 'lucide-react'; // Importar novos ícones
 
 // Interface para as estatísticas
 interface AdminStats {
+  type: 'global';
   userCount: number;
   institutionCount: number;
   jobCount: number;
 }
+
+interface PersonalStats {
+    type: 'personal';
+    totalMyJobs: number;
+    publishedMyJobs: number;
+    draftMyJobs: number;
+}
+
+// Tipo unificado que pode ser um ou outro, ou nulo
+type Stats = AdminStats | PersonalStats | null;
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -42,7 +53,7 @@ function StatCard({
 }
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [stats, setStats] = useState<Stats>(null); // Usar o tipo unificado
   const [isLoading, setIsLoading] = useState(true);
   const { token } = useAuth();
 
@@ -75,7 +86,9 @@ export default function AdminDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="text-neutral-600">Carregando estatísticas...</div>
+      <div className="flex justify-center items-center h-40">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
     );
   }
 
@@ -90,28 +103,57 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <h1 className="text-3xl font-bold text-neutral-900 mb-6">
-        Dashboard de Administração
+        Dashboard
       </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard
-          title="Total de Usuários"
-          value={stats.userCount}
-          icon={Users}
-          colorClass="text-blue-600"
-        />
-        <StatCard
-          title="Total de Instituições"
-          value={stats.institutionCount}
-          icon={Building}
-          colorClass="text-green-600"
-        />
-        <StatCard
-          title="Total de Vagas"
-          value={stats.jobCount}
-          icon={Briefcase}
-          colorClass="text-purple-600"
-        />
-      </div>
+
+      {/* Renderização condicional com base no 'type' retornado pela API */}
+      
+      {stats.type === 'global' ? (
+        // Estatísticas GLOBAIS (para Admin/Superadmin)
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatCard
+            title="Total de Usuários"
+            value={stats.userCount}
+            icon={Users}
+            colorClass="text-blue-600"
+          />
+          <StatCard
+            title="Total de Instituições"
+            value={stats.institutionCount}
+            icon={Building}
+            colorClass="text-green-600"
+          />
+          <StatCard
+            title="Total de Vagas"
+            value={stats.jobCount}
+            icon={Briefcase}
+            colorClass="text-purple-600"
+          />
+        </div>
+      ) : (
+        // Estatísticas PESSOAIS (para Professor/Coordenador/Empresa)
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatCard
+            title="Minhas Vagas Criadas"
+            value={stats.totalMyJobs}
+            icon={Briefcase}
+            colorClass="text-blue-600"
+          />
+          <StatCard
+            title="Vagas Publicadas"
+            value={stats.publishedMyJobs}
+            icon={CheckCircle}
+            colorClass="text-green-600"
+          />
+          <StatCard
+            title="Vagas em Rascunho"
+            value={stats.draftMyJobs}
+            icon={Edit3}
+            colorClass="text-yellow-600"
+          />
+        </div>
+      )}
+      
       {/* Aqui você pode adicionar mais seções, como tabelas de dados recentes */}
     </div>
   );

@@ -314,7 +314,38 @@ export class JobController {
 
     async getAllJobs(req: Request, res: Response) {
         try {
+            // --- INÍCIO DA ALTERAÇÃO ---
+            const authorId = (req as any).user?.userId;
+
+            if (!authorId) {
+                return res.status(401).json({ error: 'Usuário não autenticado.' });
+            }
+
+            // 1. Buscar todos os cargos do usuário
+            const userRoles = await prisma.userInstitutionRole.findMany({
+                where: { userId: authorId },
+                include: { role: true }
+            });
+            const roleNames = userRoles.map(ur => ur.role.name);
+
+            // 2. Verificar se é admin ou superadmin
+            const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
+
+            let whereClause: Prisma.JobWhereInput = {}; // Corrigido para let
+
+            if (isGlobalAdmin) {
+                // Admins e Superadmins veem TUDO
+                whereClause = {};
+            } else {
+                // Outros (professor, coordenador, empresa) veem APENAS as que criaram
+                whereClause = {
+                    authorId: authorId
+                };
+            }
+            
+            // 3. Aplicar o filtro na query
             const jobs = await prisma.job.findMany({
+                where: whereClause, // Aplica o filtro
                  include: {
                     author: {
                         select: { firstName: true, lastName: true, email: true }
@@ -328,6 +359,7 @@ export class JobController {
                 }
             });
             res.status(200).json(jobs);
+            // --- FIM DA ALTERAÇÃO ---
         } catch (error) {
             console.error('Erro ao buscar todas as vagas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });

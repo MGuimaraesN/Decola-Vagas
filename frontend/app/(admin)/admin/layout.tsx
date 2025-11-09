@@ -20,12 +20,12 @@ import {
 
 // Links de navegação do Admin
 const allAdminLinks: NavLink[] = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, roles: ['professor', 'coordenador', 'empresa', 'admin', 'superadmin'] },
   { href: '/admin/users', label: 'Usuários', icon: Users, roles: ['admin', 'superadmin'] },
-  { href: '/admin/jobs', label: 'Vagas', icon: Briefcase, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/admin/jobs', label: 'Vagas', icon: Briefcase, roles: ['professor', 'coordenador', 'empresa', 'admin', 'superadmin'] },
   { href: '/admin/institutions', label: 'Instituições', icon: Building, roles: ['superadmin'] },
-  { href: '/admin/categories', label: 'Categorias', icon: ClipboardList, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
-  { href: '/admin/areas', label: 'Áreas', icon: Network, roles: ['professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/admin/categories', label: 'Categorias', icon: ClipboardList, roles: ['professor', 'coordenador', 'empresa', 'admin', 'superadmin'] },
+  { href: '/admin/areas', label: 'Áreas', icon: Network, roles: ['professor', 'coordenador', 'empresa', 'admin', 'superadmin'] },
   { href: '/admin/roles', label: 'Cargos', icon: Shield, roles: ['superadmin'] },
 ];
 

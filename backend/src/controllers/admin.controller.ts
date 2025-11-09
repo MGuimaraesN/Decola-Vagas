@@ -56,15 +56,52 @@ export class AdminController {
 
   async getStats(req: Request, res: Response) {
     try {
-      const userCount = await prisma.user.count();
-      const institutionCount = await prisma.institution.count();
-      const jobCount = await prisma.job.count();
+      // --- INÍCIO DA ALTERAÇÃO ---
+      const authorId = (req as any).user?.userId;
+      if (!authorId) {
+          return res.status(401).json({ error: 'Usuário não autenticado.' });
+      }
 
-      res.json({
-        userCount,
-        institutionCount,
-        jobCount,
+      // 1. Buscar todos os cargos do usuário
+      const userRoles = await prisma.userInstitutionRole.findMany({
+          where: { userId: authorId },
+          include: { role: true }
       });
+      const roleNames = userRoles.map(ur => ur.role.name);
+
+      // 2. Verificar se é admin ou superadmin
+      const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
+
+      if (isGlobalAdmin) {
+          // Retorna estatísticas GLOBAIS
+          const userCount = await prisma.user.count();
+          const institutionCount = await prisma.institution.count();
+          const jobCount = await prisma.job.count();
+          
+          res.json({
+              type: 'global',
+              userCount,
+              institutionCount,
+              jobCount,
+          });
+      } else {
+          // Retorna estatísticas PESSOAIS (para professor, coordenador, empresa)
+          const myJobs = await prisma.job.findMany({
+              where: { authorId: authorId }
+          });
+
+          const totalMyJobs = myJobs.length;
+          const publishedMyJobs = myJobs.filter(job => job.status === 'published' || job.status === 'open').length;
+          const draftMyJobs = myJobs.filter(job => job.status === 'rascunho').length;
+
+          res.json({
+              type: 'personal',
+              totalMyJobs,
+              publishedMyJobs,
+              draftMyJobs,
+          });
+      }
+      // --- FIM DA ALTERAÇÃO ---
     } catch (error) {
       res.status(500).json({'Erro ao buscar estatísticas.': error});
     }

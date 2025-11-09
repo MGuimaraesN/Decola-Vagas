@@ -13,7 +13,7 @@ const rbacMiddleware = new RbacMiddleware();
 adminRoutes.get(
   '/stats',
   authMiddleware.auth,
-  rbacMiddleware.checkRole(['admin', 'superadmin']),
+  rbacMiddleware.checkRole(['professor', 'coordenador', 'empresa', 'admin', 'superadmin']),
   adminController.getStats
 );
 adminRoutes.get(
@@ -57,13 +57,13 @@ adminRoutes.post(
 adminRoutes.get(
     '/jobs',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['professor', 'coordenador', 'admin', 'superadmin']),
+    rbacMiddleware.checkRole(['professor', 'coordenador', 'empresa', 'admin', 'superadmin']),
     jobController.getAllJobs
 );
 adminRoutes.delete(
     '/jobs/:id',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['professor', 'coordenador', 'admin', 'superadmin']),
+    rbacMiddleware.checkRole(['professor', 'coordenador', 'empresa', 'admin', 'superadmin']),
     jobController.delete
 );
 
