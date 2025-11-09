@@ -1,4 +1,3 @@
-// Salve em: frontend/app/(admin)/admin/jobs/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -85,7 +84,8 @@ export default function AdminJobsPage() {
   };
 
   const handleEdit = (jobId: number) => {
-    router.push(`/dashboard/jobs/edit/${jobId}`);
+    // ALTERAÇÃO AQUI: Redireciona para a nova página de edição do admin
+    router.push(`/admin/jobs/edit/${jobId}`);
   };
 
   const handleDelete = async () => {
@@ -117,8 +117,9 @@ export default function AdminJobsPage() {
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gerenciamento de Todas as Vagas</h1>
+        {/* ALTERAÇÃO AQUI: Link aponta para a nova página de criação do admin */}
         <Button asChild>
-          <Link href="/dashboard/jobs/new">Criar Nova Vaga</Link>
+          <Link href="/admin/jobs/new">Criar Nova Vaga</Link>
         </Button>
       </div>
       <div className="rounded-lg border">

@@ -6,36 +6,45 @@ import InstitutionSwitcher from '@/components/InstitutionSwitcher';
 import { User, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-// --- INÍCIO DA CORREÇÃO ---
 import { usePathname } from 'next/navigation';
-// --- FIM DA CORREÇÃO ---
 
 export default function Header() {
   const { user } = useAuth();
-  // --- INÍCIO DA CORREÇÃO ---
   const pathname = usePathname();
+
+  // --- INÍCIO DA CORREÇÃO ---
+  let hasAdminAccess = false;
+  if (user?.institutions) {
+    // 1. Verifica se tem um cargo global (admin/superadmin) em QUALQUER instituição
+    const isGlobalAdmin = user.institutions.some(
+      (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
+    );
+
+    if (isGlobalAdmin) {
+      hasAdminAccess = true;
+    } else {
+      // 2. Se não for, verifica o cargo da instituição ATIVA (para professor/coordenador)
+      const activeInstitution = user.institutions.find(
+        (inst: any) => inst.institution.id === user.activeInstitutionId
+      );
+      const activeRole = activeInstitution?.role.name;
+      if (activeRole && ['professor', 'coordenador'].includes(activeRole)) {
+        hasAdminAccess = true;
+      }
+    }
+  }
+
+  const showAdminButton = hasAdminAccess;
   // --- FIM DA CORREÇÃO ---
 
-  const activeInstitution = user?.institutions.find(
-    (inst) => inst.institution.id === user.activeInstitutionId
-  );
-  const activeRole = activeInstitution?.role.name;
-
-  const showAdminButton =
-    activeRole && ['professor', 'coordenador', 'admin', 'superadmin'].includes(activeRole);
-
-  // --- INÍCIO DA CORREÇÃO ---
   // Verifica se a rota atual JÁ É o painel admin
   const isAdminPanel = pathname.startsWith('/admin');
-  // --- FIM DA CORREÇÃO ---
 
   return (
     <header className="bg-white border-b border-neutral-200 p-4 flex justify-between items-center sticky top-0 z-40">
       {/* Botão Admin (se aplicável e se NÃO estiver no admin) */}
       <div>
-        {/* --- INÍCIO DA CORREÇÃO --- */}
         {showAdminButton && !isAdminPanel && (
-        // --- FIM DA CORREÇÃO ---
           <Button asChild variant="outline" size="sm">
             <Link href="/admin">
               <Shield className="h-4 w-4 mr-2" />

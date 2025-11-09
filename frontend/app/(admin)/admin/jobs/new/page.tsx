@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,14 +24,15 @@ interface Area {
   name: string;
 }
 
-export default function NewJobPage() {
+// Esta é a nova página de criação de vaga DENTRO do /admin
+export default function AdminNewJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [areaId, setAreaId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [companyName, setCompanyName] = useState(''); // Novo estado para nome da empresa
+  const [companyName, setCompanyName] = useState('');
   const [status, setStatus] = useState('rascunho');
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -68,6 +69,7 @@ export default function NewJobPage() {
     setIsLoading(true);
 
     try {
+      // A API de criação é a mesma
       const res = await fetch('http://localhost:5000/jobs/create', {
         method: 'POST',
         headers: {
@@ -88,7 +90,8 @@ export default function NewJobPage() {
 
       if (res.ok) {
         toast.success('Vaga criada com sucesso!');
-        router.push('/dashboard/jobs');
+        // ALTERAÇÃO AQUI: Redireciona de volta para a lista de vagas do admin
+        router.push('/admin/jobs');
       } else {
         const data = await res.json();
         toast.error(data.error || 'Falha ao criar vaga.');
@@ -102,7 +105,7 @@ export default function NewJobPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-neutral-900">Criar Nova Vaga</h1>
+      <h1 className="text-3xl font-bold mb-6 text-neutral-900">Criar Nova Vaga (Admin)</h1>
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6">
 
         <div>
@@ -153,7 +156,6 @@ export default function NewJobPage() {
               </SelectContent>
             </Select>
           </div>
-          {/* --- NOVO CAMPO DE STATUS --- */}
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
             <Select value={status} onValueChange={setStatus} required>
@@ -167,11 +169,11 @@ export default function NewJobPage() {
               </SelectContent>
             </Select>
           </div>
-          {/* --- FIM DO NOVO CAMPO --- */}
         </div>
 
         <div className="flex justify-end gap-4 pt-4">
-           <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
+           {/* ALTERAÇÃO AQUI: router.back() vai para /admin/jobs */}
+           <Button type="button" variant="outline" onClick={() => router.push('/admin/jobs')} disabled={isLoading}>
             Cancelar
            </Button>
           <Button type="submit" disabled={isLoading}>

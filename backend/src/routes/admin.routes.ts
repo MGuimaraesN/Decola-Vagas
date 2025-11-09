@@ -57,13 +57,13 @@ adminRoutes.post(
 adminRoutes.get(
     '/jobs',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['superadmin']),
+    rbacMiddleware.checkRole(['professor', 'coordenador', 'admin', 'superadmin']),
     jobController.getAllJobs
 );
 adminRoutes.delete(
     '/jobs/:id',
     authMiddleware.auth,
-    rbacMiddleware.checkRole(['superadmin']),
+    rbacMiddleware.checkRole(['professor', 'coordenador', 'admin', 'superadmin']),
     jobController.delete
 );
 
