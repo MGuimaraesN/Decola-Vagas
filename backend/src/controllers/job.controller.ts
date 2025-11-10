@@ -92,6 +92,7 @@ export class JobController {
                 include: { role: true },
             });
 
+            // Permite edição se for o autor, admin ou superadmin
             const isAdmin = userRole?.role.name === 'admin';
             const isSuperAdmin = userRole?.role.name === 'superadmin';
 
@@ -143,6 +144,9 @@ export class JobController {
                 return res.status(404).json({ error: 'Vaga não encontrada' });
             }
 
+            // Busca os cargos do usuário. Idealmente, isso deveria checar
+            // se ele é superadmin em *qualquer* instituição, não apenas na da vaga.
+            // A lógica de `getJobsByInstitution` está melhor para isso.
             const userRole = await prisma.userInstitutionRole.findFirst({
                 where: {
                     userId: authorId,
@@ -157,10 +161,12 @@ export class JobController {
                 return res.status(403).json({ error: 'Você não tem permissão para excluir esta vaga' });
             }
 
+            // Deleta primeiro as vagas salvas associadas
             await prisma.savedJob.deleteMany({
                 where: { jobId: parseInt(id) },
             });
 
+            // Depois deleta a vaga
             await prisma.job.delete({
                 where: { id: parseInt(id) },
             });
@@ -175,69 +181,69 @@ export class JobController {
         }
     }
 
+    /**
+     * Esta é a função para o "Mural do Dashboard".
+     * A correção está aqui.
+     */
     async getJobsByInstitution(req: Request, res: Response) {
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
-        const userId = (req as any).user?.userId; // 1. Pegar o ID do usuário
+        const userId = (req as any).user?.userId; 
         const { search, areaId, categoryId } = req.query;
 
-        // 2. Verificar se o usuário está autenticado
         if (!userId) {
             return res.status(401).json({ error: 'Usuário não autenticado.' });
         }
 
         try {
-            // 3. Verificar os cargos do usuário
+            // --- INÍCIO DA CORREÇÃO ---
+            
+            // 1. Busca TODOS os cargos do usuário, de TODAS as instituições
             const userRoles = await prisma.userInstitutionRole.findMany({
                 where: { userId: userId },
                 include: { role: true }
             });
+
+            // 2. Verifica se ele é 'admin' or 'superadmin' em QUALQUER lugar
             const roleNames = userRoles.map(ur => ur.role.name);
             const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
 
+            
+            // 3. Monta a cláusula de busca
+            const whereClause: Prisma.JobWhereInput = {};
 
-            // 4. Construir filtros base (busca, area, categoria)
-            const filters: Prisma.JobWhereInput[] = [];
-
-            if (search) {
-                filters.push({
-                    title: {
-                        contains: search as string,
-                    },
-                });
+            // 4. Adiciona os filtros de busca (search, area, category)
+            if (search && typeof search === 'string' && search.trim() !== '') {
+                whereClause.title = {
+                    contains: search as string,
+                };
+            }
+            if (areaId && typeof areaId === 'string' && areaId.trim() !== '') {
+                whereClause.areaId = parseInt(areaId as string);
+            }
+            if (categoryId && typeof categoryId === 'string' && categoryId.trim() !== '') {
+                whereClause.categoryId = parseInt(categoryId as string);
             }
 
-            if (areaId) {
-                filters.push({ areaId: parseInt(areaId as string) });
-            }
-
-            if (categoryId) {
-                filters.push({ categoryId: parseInt(categoryId as string) });
-            }
-
-            // 5. Construir a cláusula principal baseada no cargo
-            let whereClause: Prisma.JobWhereInput = { AND: filters }; // Já inicializa com os filtros base
-
-            if (isGlobalAdmin) {
-                // Admin/Superadmin: Vê TODAS as vagas (respeitando os filtros de busca)
-                // Nenhuma cláusula de instituição é adicionada.
-            } else {
-                // Usuário comum: Vê vagas da instituição ativa + vagas públicas
+            // 5. Adiciona a lógica de permissão (O PONTO PRINCIPAL DA CORREÇÃO)
+            if (!isGlobalAdmin) {
+                // Se NÃO for admin, filtra pela instituição ativa E vagas públicas
                 if (!activeInstitutionId) {
-                    // Esta verificação agora só se aplica a não-admins
                     return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
                 }
-                // Adiciona o filtro de instituição/público aos filtros existentes
-                filters.push({
-                    OR: [
-                        { isPublic: false, institutionId: activeInstitutionId },
-                        { isPublic: true },
-                    ],
-                });
+                
+                whereClause.OR = [
+                    { isPublic: false, institutionId: activeInstitutionId }, // Vagas da instituição
+                    { isPublic: true }, // Vagas de empresa
+                ];
             }
+            // Se FOR admin global, NENHUM filtro de instituição ou 'isPublic' é adicionado.
+            // O `whereClause` conterá apenas os filtros de busca (search, area, etc).
+            // Se nenhum filtro for passado, `whereClause` será `{}` e buscará TUDO.
 
-            // 6. Executar a query
+            // --- FIM DA CORREÇÃO ---
+
             const jobs = await prisma.job.findMany({
-                where: whereClause, // whereClause já contém o { AND: filters }
+                where: whereClause, // 6. Executa a query com a cláusula 'where' corrigida
                 include: {
                     author: {
                         select: { firstName: true, lastName: true, email: true }
@@ -269,19 +275,21 @@ export class JobController {
                 status: { in: ['published', 'open'] } // Só queremos vagas ativas
             };
 
-            if (search) {
+            // --- CORREÇÃO APLICADA AQUI TAMBÉM ---
+            if (search && typeof search === 'string' && search.trim() !== '') {
                 whereFilters.title = {
                     contains: search as string,
                 };
             }
 
-            if (areaId) {
+            if (areaId && typeof areaId === 'string' && areaId.trim() !== '') {
                 whereFilters.areaId = parseInt(areaId as string);
             }
 
-            if (categoryId) {
+            if (categoryId && typeof categoryId === 'string' && categoryId.trim() !== '') {
                 whereFilters.categoryId = parseInt(categoryId as string);
             }
+            // --- FIM DA CORREÇÃO ---
 
             // 2. Busca TODAS as vagas de Empresa (isPublic: true)
             const publicJobs = await prisma.job.findMany({
@@ -354,6 +362,10 @@ export class JobController {
                     author: {
                         select: { firstName: true, lastName: true }
                     },
+                     // --- Adicionado para ter o nome da instituição ---
+                    institution: {
+                        select: { name: true }
+                    }
                 }
             });
 

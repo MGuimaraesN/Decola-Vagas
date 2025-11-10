@@ -7,8 +7,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// --- IMPORTAÇÃO ADICIONADA ---
-import { Button } from '@/components/ui/button';
 
 // Interfaces para os dados
 interface Area {
@@ -49,7 +47,7 @@ export default function LandingPage() {
     }
   }, [user, loading, router]);
 
-  // --- Buscar vagas públicas ---
+  // --- NOVA FUNCIONALIDADE: Buscar vagas públicas ---
   useEffect(() => {
     const fetchPublicJobs = async () => {
       setLoadingJobs(true);
@@ -70,6 +68,7 @@ export default function LandingPage() {
         setLoadingJobs(false);
       }
     };
+    // Só busca as vagas se não estiver logado e o auth não estiver carregando
     if (!user && !loading) {
       fetchPublicJobs();
     }
@@ -91,6 +90,7 @@ export default function LandingPage() {
         };
         fetchFilterData();
     }, []);
+  // --- FIM DA NOVA FUNCIONALIDADE ---
 
 
   // Não renderiza a página de login se estiver carregando ou se o usuário estiver logado
@@ -104,7 +104,7 @@ export default function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-50 text-neutral-900">
-      {/* Header - COM GRADIENTE SUTIL */}
+      {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-neutral-200 bg-white/80 backdrop-blur-md">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Link href="/" className="flex items-center gap-2">
@@ -114,13 +114,13 @@ export default function LandingPage() {
             </span>
           </Link>
           <nav className="flex items-center gap-4">
-            {/* --- BOTÃO ATUALIZADO --- */}
-            <Button asChild size="sm">
-              <Link href="/login">
-                <LogIn className="h-4 w-4 mr-2" />
-                Entrar
-              </Link>
-            </Button>
+            <Link
+              href="/login"
+              className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              <LogIn className="h-4 w-4" />
+              Entrar
+            </Link>
           </nav>
         </div>
       </header>
@@ -131,44 +131,43 @@ export default function LandingPage() {
           <h1 className="text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl md:text-6xl">
             Encontre sua próxima oportunidade acadêmica.
           </h1>
-          {/* --- ESPAÇAMENTO CORRIGIDO --- */}
-          <p className="mt-4 max-w-2xl text-lg text-neutral-600">
+          <p className="mt-6 max-w-2xl text-lg text-neutral-600">
             O Decola Vagas centraliza estágios, iniciações científicas e vagas
             juniores diretamente da sua instituição de ensino.
           </p>
-          {/* --- ESPAÇAMENTO E BOTÕES ATUALIZADOS --- */}
-          <div className="mt-8 flex gap-4">
-            <Button asChild size="lg">
-              <Link href="/register">
-                Começar agora
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg">
-              <Link href="/login">
-                Fazer Login
-              </Link>
-            </Button>
+          <div className="mt-10 flex gap-4">
+            <Link
+              href="/register"
+              className="rounded-md bg-blue-600 px-6 py-3 text-lg font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+            >
+              Começar agora
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-md bg-white px-6 py-3 text-lg font-semibold text-neutral-900 shadow-sm ring-1 ring-inset ring-neutral-300 hover:bg-neutral-100"
+            >
+              Fazer Login
+            </Link>
           </div>
         </section>
 
-        {/* --- SEÇÃO DE VAGAS RECENTES (COM FUNDO CORRIGIDO) --- */}
-        <section className="bg-neutral-100 py-20 md:py-24 border-t">
+        {/* --- NOVA SEÇÃO: Vagas Recentes --- */}
+        <section className="bg-white py-20 md:py-24">
           <div className="container mx-auto max-w-5xl px-4">
             <h2 className="text-center text-3xl font-bold text-neutral-900 mb-4">
               Vagas Recentes
             </h2>
-            {/* --- ESPAÇAMENTO CORRIGIDO --- */}
-            <p className="text-center text-neutral-600 mb-8">
+            <p className="text-center text-neutral-600 mb-12">
               Filtre as oportunidades abertas e encontre a ideal para você.
             </p>
 
-            {/* --- FILTROS CORRIGIDOS --- */}
-            <div className="mb-12 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Filtros */}
+            <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
                     placeholder="Buscar por título..."
                     value={filters.search}
                     onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                    className="md:col-span-2"
+                    className="md:col-span-1"
                 />
                 <Select value={filters.areaId} onValueChange={(value) =>
                   setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
@@ -187,7 +186,6 @@ export default function LandingPage() {
                         </SelectContent>
                   </Select>
             </div>
-            {/* --- FIM DA CORREÇÃO DOS FILTROS --- */}
 
             {loadingJobs ? (
               <div className="flex justify-center items-center h-40">
@@ -264,7 +262,7 @@ export default function LandingPage() {
   );
 }
 
-// --- COMPONENTE JOBCARD ATUALIZADO ---
+// Componente Card de Vaga
 function JobCard({ job }: { job: Job }) {
   const timeAgo = (date: string) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -282,39 +280,32 @@ function JobCard({ job }: { job: Job }) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border border-neutral-200 hover:shadow-lg transition-shadow flex flex-col">
-      <h3 className="text-xl font-semibold text-neutral-900 line-clamp-2">{job.title}</h3>
-      
-      {/* Informações principais agrupadas */}
-      <div className="mt-3 flex flex-col gap-2 text-sm text-neutral-600">
-        {/* Linha Categoria + Área */}
+    <div className="bg-white p-6 rounded-lg shadow-md border border-neutral-200 hover:shadow-lg transition-shadow">
+      <h3 className="text-xl font-semibold text-neutral-900">{job.title}</h3>
+      <p className="text-sm font-medium text-blue-600 mt-1">{job.category.name}</p>
+
+      <div className="mt-4 flex flex-col gap-2 text-sm text-neutral-600">
         <div className="flex items-center gap-2">
-          <Briefcase className="h-4 w-4 flex-shrink-0" />
-          <span className="font-medium text-blue-600">{job.category.name}</span>
-          <span className="text-neutral-300">|</span>
+          <Building className="h-4 w-4" />
+          <span>{job.institution.name}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4" />
           <span>{job.area.name}</span>
         </div>
-        
-        {/* Linha Instituição */}
         <div className="flex items-center gap-2">
-          <Building className="h-4 w-4 flex-shrink-0" />
-          <span>{job.institution.name}</span>
+          <Clock className="h-4 w-4" />
+          <span>{timeAgo(job.createdAt)}</span>
         </div>
       </div>
 
-      <p className="mt-4 text-sm text-neutral-700 line-clamp-3 flex-1">
+      <p className="mt-4 text-sm text-neutral-700 line-clamp-2">
         {job.description}
       </p>
 
-      {/* Rodapé do Card com o tempo */}
-      <div className="flex items-center gap-2 text-xs text-neutral-500 mt-4 pt-4 border-t border-neutral-100">
-        <Clock className="h-3 w-3" />
-        <span>{timeAgo(job.createdAt)}</span>
-      </div>
     </div>
   );
 }
-// --- FIM DO JOBCARD ATUALIZADO ---
 
 
 // Componente Card de Feature
