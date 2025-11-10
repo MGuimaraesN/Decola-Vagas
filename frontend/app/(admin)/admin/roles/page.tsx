@@ -78,6 +78,11 @@ export default function RolesPage() {
   };
 
   // Carregar dados no mount
+
+  useEffect(() => {
+    document.title = 'Admin: Cargos | Decola Vagas';
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [token]);

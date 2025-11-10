@@ -70,6 +70,10 @@ export default function AdminJobsPage() {
   };
 
   useEffect(() => {
+    document.title = 'Admin: Vagas | Decola Vagas';
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [token]);
 

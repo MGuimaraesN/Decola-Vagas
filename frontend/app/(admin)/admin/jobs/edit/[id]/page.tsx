@@ -47,6 +47,11 @@ export default function AdminEditJobPage() {
   const { id } = params;
 
   // Fetch job data, categories, and areas
+
+  useEffect(() => {
+    document.title = 'Admin: Editar Vaga | Decola Vagas';
+  }, []);
+
   useEffect(() => {
     if (!token || !id) return;
     const fetchData = async () => {

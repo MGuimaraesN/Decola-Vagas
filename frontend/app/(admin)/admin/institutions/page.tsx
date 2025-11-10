@@ -78,6 +78,11 @@ export default function InstitutionsPage() {
   };
 
   // Carregar dados no mount
+
+  useEffect(() => {
+    document.title = 'Admin: Instituições | Decola Vagas';
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [token]);

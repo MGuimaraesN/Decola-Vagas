@@ -59,6 +59,10 @@ export default function AdminDashboardPage() {
   const { token } = useAuth();
 
   useEffect(() => {
+    document.title = 'Admin: Dashboard | Decola Vagas';
+  }, []);
+  
+  useEffect(() => {
     const fetchStats = async () => {
       if (!token) {
         setIsLoading(false);

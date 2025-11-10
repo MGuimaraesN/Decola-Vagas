@@ -103,6 +103,10 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    document.title = 'Mural de Vagas | Decola Vagas';
+  }, []);
+
+  useEffect(() => {
     // Busca de áreas e categorias (não depende de outros filtros)
     const fetchFilterData = async () => {
         if (!token) return;

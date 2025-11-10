@@ -41,6 +41,10 @@ export default function RegisterPage() {
 
   // Redireciona para o dashboard se o usuário já estiver logado
   useEffect(() => {
+    document.title = 'Cadastro | Decola Vagas';
+  }, []);
+
+  useEffect(() => {
     if (!loading && user) {
       router.push('/dashboard');
     }

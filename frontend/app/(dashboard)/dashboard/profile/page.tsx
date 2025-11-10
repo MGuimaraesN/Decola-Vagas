@@ -33,6 +33,11 @@ export default function ProfilePage() {
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
   // Popula o formulário de perfil com os dados do usuário quando o componente é montado
+
+  useEffect(() => {
+    document.title = 'Meu Perfil | Decola Vagas';
+  }, []);
+  
   useEffect(() => {
     if (user) {
       setProfileData({

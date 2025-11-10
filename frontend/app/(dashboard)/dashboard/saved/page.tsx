@@ -35,6 +35,10 @@ export default function SavedJobsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    document.title = 'Vagas Salvas | Decola Vagas';
+  }, []);
+  
+  useEffect(() => {
     const fetchSavedJobs = async () => {
       if (!token) {
         setIsLoading(false);

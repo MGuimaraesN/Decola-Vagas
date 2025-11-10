@@ -124,6 +124,10 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
+    document.title = 'Admin: Usuários | Decola Vagas';
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [token]);
 

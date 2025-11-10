@@ -78,6 +78,10 @@ export default function CategoriesPage() {
   };
 
   // Carregar dados no mount
+    useEffect(() => {
+    document.title = 'Admin: Categorias | Decola Vagas';
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [token]);

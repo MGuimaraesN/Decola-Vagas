@@ -45,6 +45,11 @@ export default function AdminNewJobPage() {
   const router = useRouter();
 
   // Fetch categories and areas
+
+  useEffect(() => {
+    document.title = 'Admin: Nova Vaga | Decola Vagas';
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!token) return;

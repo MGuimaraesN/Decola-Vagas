@@ -1,4 +1,3 @@
-// Salve em: frontend/app/(admin)/admin/areas/page.tsx
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
@@ -53,13 +52,6 @@ export default function AreasPage() {
 
   const { token } = useAuth();
 
-  // --- INÍCIO DA ADIÇÃO ---
-  // Define o título da página quando o componente é montado
-  useEffect(() => {
-    document.title = 'Admin: Áreas | Decola Vagas';
-  }, []);
-  // --- FIM DA ADIÇÃO ---
-
   // Função para buscar os dados
   const fetchData = async () => {
     if (!token) {
@@ -85,6 +77,10 @@ export default function AreasPage() {
   };
 
   // Carregar dados no mount
+    useEffect(() => {
+    document.title = 'Admin: Áreas | Decola Vagas';
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [token]);
