@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../database/prisma.js';
-import { sendPasswordResetEmail } from '../services/mail.service.js';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendSecurityAlert } from '../services/mail.service.js';
 
 export class UserController {
 
@@ -53,6 +53,14 @@ export class UserController {
                 where: { id: newUser.id },
                 data: { activeInstitutionId: institutionId }
             });
+
+            // Envia e-mail de boas-vindas
+            try {
+                await sendWelcomeEmail(newUser.email, newUser.firstName);
+            } catch (emailError) {
+                console.error('Erro ao enviar e-mail de boas-vindas:', emailError);
+                // Não bloqueia o registro se o e-mail falhar
+            }
 
             const secret = process.env.JWT_SECRET;
 
@@ -238,6 +246,13 @@ export class UserController {
                 }
             });
 
+            // Envia alerta de segurança
+            try {
+                await sendSecurityAlert(user.email);
+            } catch (emailError) {
+                console.error('Erro ao enviar alerta de segurança (resetPassword):', emailError);
+            }
+
             return res.status(200).json({ message: 'Senha redefinida com sucesso!' });
 
         } catch (error) {
@@ -314,6 +329,13 @@ export class UserController {
                 where: { email: userEmail },
                 data: { password: hashedPassword }
             });
+
+            // Envia alerta de segurança
+            try {
+                await sendSecurityAlert(user.email);
+            } catch (emailError) {
+                console.error('Erro ao enviar alerta de segurança (changePassword):', emailError);
+            }
 
             res.status(200).json({ message: 'Senha alterada com sucesso' });
         } catch (error) {

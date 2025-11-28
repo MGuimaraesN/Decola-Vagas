@@ -1,6 +1,11 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
 import { Prisma } from '@prisma/client';
+import {
+    sendNewJobNotification,
+    sendJobModifiedNotification,
+    sendJobUnavailableNotification
+} from '../services/mail.service.js';
 
 export class JobController {
 
@@ -53,7 +58,48 @@ export class JobController {
                     companyName: companyName,
                     isPublic: isPublic,
                 },
+                include: {
+                    institution: true
+                }
             });
+
+            // Enviar notificação de nova vaga
+            // Apenas se status for 'published' ou 'open'
+            if (['published', 'open'].includes(job.status)) {
+                try {
+                    let recipients: string[] = [];
+
+                    if (job.isPublic) {
+                        // Se pública, envia para todos (ou interessados - aqui simulado como todos para simplificar o MVP)
+                        // Em produção, deve-se filtrar por preferências do usuário.
+                        // CUIDADO: Em grandes bases, isso deve ser feito em chunks ou via fila de tarefas.
+                        const allUsers = await prisma.user.findMany({ select: { email: true } });
+                        recipients = allUsers.map(u => u.email);
+                    } else {
+                        // Se privada, envia apenas para usuários da mesma instituição
+                        // Busca usuários que têm um papel na instituição da vaga
+                        const institutionUsers = await prisma.userInstitutionRole.findMany({
+                            where: { institutionId: job.institutionId },
+                            include: { user: { select: { email: true } } }
+                        });
+                        recipients = institutionUsers.map(ur => ur.user.email);
+                    }
+
+                    // Remover duplicatas e e-mail do próprio autor (opcional, mas boa prática)
+                    const uniqueRecipients = [...new Set(recipients)];
+
+                    if (uniqueRecipients.length > 0) {
+                        const institutionName = job.institution.name;
+                        // Executa de forma assíncrona sem await para não bloquear a resposta
+                        sendNewJobNotification(uniqueRecipients, job.title, institutionName)
+                            .catch(err => console.error("Falha background envio email nova vaga:", err));
+                    }
+
+                } catch (emailError) {
+                    console.error('Erro ao preparar envio de e-mail nova vaga:', emailError);
+                }
+            }
+
             res.status(201).json(job);
         } catch (error) {
             console.error('Erro ao criar vaga:', error);
@@ -100,6 +146,11 @@ export class JobController {
                 return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
             }
 
+            // Identificar mudanças críticas
+            const isStatusChanged = status && status !== job.status;
+            // Para descrição, comparamos string. Se description não vier, assume que não mudou.
+            const isDescriptionChanged = description && description !== job.description;
+
             const updatedJob = await prisma.job.update({
                 where: { id: parseInt(id) },
                 data: {
@@ -113,6 +164,38 @@ export class JobController {
                     companyName: companyName,
                 },
             });
+
+            // Notificações de edição
+            try {
+                // Se status mudou para 'closed', notifica usuários que salvaram
+                if (isStatusChanged && status === 'closed') {
+                     const savedJobs = await prisma.savedJob.findMany({
+                        where: { jobId: job.id },
+                        include: { user: { select: { email: true } } }
+                    });
+
+                    const recipients = savedJobs.map(sj => sj.user.email);
+                    // Dispara envios em paralelo
+                    recipients.forEach(email => {
+                         sendJobUnavailableNotification(email, job.title).catch(e => console.error(`Erro envio email vaga indisponível para ${email}`, e));
+                    });
+
+                } else if (isStatusChanged || isDescriptionChanged) {
+                    // Se houve mudança crítica (mas não fechou), notifica usuários que salvaram
+                    const savedJobs = await prisma.savedJob.findMany({
+                        where: { jobId: job.id },
+                        include: { user: { select: { email: true } } }
+                    });
+
+                    const recipients = savedJobs.map(sj => sj.user.email);
+                    recipients.forEach(email => {
+                        sendJobModifiedNotification(email, updatedJob.title).catch(e => console.error(`Erro envio email vaga modificada para ${email}`, e));
+                    });
+                }
+            } catch (notifyError) {
+                 console.error('Erro ao processar notificações de edição:', notifyError);
+            }
+
             res.status(200).json(updatedJob);
         } catch (error) {
             if ((error as any).code === 'P2025') {
@@ -159,6 +242,21 @@ export class JobController {
 
             if (job.authorId !== authorId && !isSuperAdmin) {
                 return res.status(403).json({ error: 'Você não tem permissão para excluir esta vaga' });
+            }
+
+            // Notificar antes de deletar
+            try {
+                 const savedJobs = await prisma.savedJob.findMany({
+                    where: { jobId: job.id },
+                    include: { user: { select: { email: true } } }
+                });
+
+                const recipients = savedJobs.map(sj => sj.user.email);
+                await Promise.all(recipients.map(email =>
+                     sendJobUnavailableNotification(email, job.title).catch(e => console.error(`Erro envio email delete para ${email}`, e))
+                ));
+            } catch (notifyError) {
+                 console.error('Erro nas notificações de delete:', notifyError);
             }
 
             // Deleta primeiro as vagas salvas associadas
