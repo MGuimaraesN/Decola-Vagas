@@ -2,8 +2,8 @@
 
 // Imports de React e Next
 import { useEffect, useState, FormEvent } from 'react';
-import Link from 'next/link'; // Adicionado
-import { useRouter } from 'next/navigation'; // Adicionado
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 // Imports dos componentes de UI reais de /components
 import { Input } from '@/components/ui/input';
@@ -30,9 +30,9 @@ import {
   Waypoints,
   MapPin,
   Clock,
-  X,
+  // CheckCircle2 e Mail não são mais necessários para o novo design de sucesso, mas mantive Mail se quiser usar em inputs futuros
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext'; // Adicionado
+import { useAuth } from '@/context/AuthContext';
 import { toast, Toaster } from 'sonner';
 
 // --- Interfaces ---
@@ -64,18 +64,12 @@ export default function LandingPage() {
   const [areas, setAreas] = useState<Area[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   
-  // --- NOVO ESTADO PARA O MODAL ---
+  // --- ESTADO PARA O MODAL ---
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // Hooks para o modal (reais)
-  const { login } = useAuth(); // Adicionado
-  const router = useRouter(); // Adicionado
-
-  // --- Mocks para fazer o preview funcionar ---
-  // REMOVIDO mockLogin
-  // REMOVIDO mockRouter
-  // --- Fim dos Mocks ---
-
+  // Hooks para o modal
+  const { login } = useAuth();
+  const router = useRouter();
 
   // --- Lógica de Busca ---
 
@@ -101,11 +95,11 @@ export default function LandingPage() {
           setJobs(data);
         } else {
           console.error("Falha ao buscar vagas, status:", res.status);
-          setJobs([]); // Limpa as vagas em caso de erro
+          setJobs([]);
         }
       } catch (error) {
         console.error("Erro ao buscar vagas públicas:", error);
-        setJobs([]); // Limpa as vagas em caso de erro
+        setJobs([]);
       } finally {
         setLoadingJobs(false);
       }
@@ -118,7 +112,6 @@ export default function LandingPage() {
     const fetchFilterData = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        // USA AS NOVAS ROTAS PÚBLICAS
         const [areaRes, catRes] = await Promise.all([
           fetch(`${apiUrl}/areas/public`),
           fetch(`${apiUrl}/categories/public`),
@@ -144,7 +137,6 @@ export default function LandingPage() {
             </span>
           </Link>
           <nav className="flex items-center gap-4">
-            {/* --- BOTÃO ATUALIZADO PARA ABRIR O MODAL --- */}
             <Button onClick={() => setShowLoginModal(true)} className="flex items-center gap-2">
               <LogIn className="h-4 w-4" />
               Entrar
@@ -171,7 +163,6 @@ export default function LandingPage() {
                 Começar agora
               </Link>
             </Button>
-            {/* --- BOTÃO "FAZER LOGIN" ATUALIZADO PARA ABRIR O MODAL --- */}
             <Button variant="outline" size="lg" className="text-lg px-6 py-3" onClick={() => setShowLoginModal(true)}>
               Fazer Login
             </Button>
@@ -188,13 +179,13 @@ export default function LandingPage() {
               Filtre as oportunidades abertas e encontre a ideal para você.
             </p>
 
-            {/* Filtros Corrigidos */}
+            {/* Filtros */}
             <div className="mb-12 grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input
                 placeholder="Buscar por título..."
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="md:col-span-1 bg-white" // Adicionado bg-white para consistência
+                className="md:col-span-1 bg-white"
               />
               <Select value={filters.areaId} onValueChange={(value) =>
                 setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
@@ -220,7 +211,7 @@ export default function LandingPage() {
               </div>
             ) : jobs.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {jobs.slice(0, 6).map((job) => ( // Limita a 6 vagas
+                {jobs.slice(0, 6).map((job) => (
                   <JobCard key={job.id} job={job} />
                 ))}
               </div>
@@ -251,17 +242,17 @@ export default function LandingPage() {
             </p>
             <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3">
               <FeatureCard
-                icon={Briefcase} // Ícone corrigido
+                icon={Briefcase}
                 title="Vagas Centralizadas"
                 description="Professores e coordenadores postam as vagas, e você encontra tudo aqui."
               />
               <FeatureCard
-                icon={Waypoints} // Ícone corrigido
+                icon={Waypoints}
                 title="Conexão Direta"
                 description="Acesse oportunidades exclusivas da sua instituição de ensino."
               />
               <FeatureCard
-                icon={Filter} // Ícone corrigido
+                icon={Filter}
                 title="Filtros Inteligentes"
                 description="Encontre rapidamente vagas por área, categoria ou status."
               />
@@ -288,23 +279,21 @@ export default function LandingPage() {
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        login={login} // Passando o hook real
-        router={router} // Passando o hook real
+        login={login}
+        router={router}
       />
-      {/* Adiciona o Toaster para exibir notificações */}
       <Toaster richColors />
     </div>
   );
 }
 
-// --- NOVO COMPONENTE: MODAL DE LOGIN ---
-// (Colocado dentro do mesmo arquivo por ser "use client")
+// --- MODAL DE LOGIN ATUALIZADO ---
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  login: (token: string) => Promise<any>; // Função do AuthContext (agora real)
-  router: any; // Tipo do Next Router (agora real)
+  login: (token: string) => Promise<any>;
+  router: any;
 }
 
 function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
@@ -312,10 +301,60 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetSent, setIsResetSent] = useState(false); // Novo estado para sucesso do reset
 
   const LOGIN_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
+  const FORGOT_PASSWORD_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`;
+  
+  // Regex simples para validação de e-mail
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  const handleSubmit = async (e: FormEvent) => {
+  // Lógica de "Esqueceu a senha" integrada
+  const handleForgotPassword = async () => {
+    // 1. Verifica se o email está preenchido e válido
+    if (!email.trim()) {
+      toast.error('Por favor, digite seu e-mail no campo acima primeiro.');
+      setError('Digite seu e-mail no campo acima para recuperar a senha.');
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      toast.error('Por favor, digite um e-mail válido.');
+      setError('Formato de e-mail inválido.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // 2. Envia a requisição
+      const res = await fetch(FORGOT_PASSWORD_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // 3. Muda a UI para sucesso
+        setIsResetSent(true);
+        toast.success('Link de recuperação enviado com sucesso!');
+      } else {
+        const errorMsg = data.error || 'Erro ao enviar link de recuperação.';
+        setError(errorMsg);
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro de rede ao tentar recuperar senha.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -331,12 +370,9 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
         const data = await res.json();
         toast.success('Login realizado com sucesso!');
 
-        // Chama a função de login do AuthContext
         const userData = await login(data.access_token);
-        
-        onClose(); // Fecha o modal
+        onClose();
 
-        // Lógica de redirecionamento (copiada de /login/page.tsx)
         if (userData) {
           const isGlobalAdmin = userData.institutions.some(
             (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
@@ -349,7 +385,6 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
 
           if (userData.activeInstitutionId) {
             const activeInstitution = userData.institutions.find(
-              // Corrigido de institutionId para institution.id
               (inst: any) => inst.institution.id === userData.activeInstitutionId
             );
             const activeRole = activeInstitution?.role.name;
@@ -371,7 +406,6 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
             }
           }
         } else {
-          // Fallback caso userData seja nulo após o login
           toast.error("Não foi possível carregar seu perfil. Redirecionando...");
           router.push('/dashboard'); 
         }
@@ -392,105 +426,140 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
     }
   };
 
+  // Função para resetar o estado quando fechar ou mudar de modo
+  const resetState = () => {
+    setIsResetSent(false);
+    setError(null);
+    setEmail('');
+    setPassword('');
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
-            Acesse sua conta
-          </DialogTitle>
-        </DialogHeader>
-
-        {/* REMOVIDO o botão X duplicado. 
-          O <DialogContent> de shadcn/ui já inclui um botão de fechar.
-        */}
-
-        <form onSubmit={handleSubmit} className="space-y-6 px-4 pb-4">
-          {error && (
-            <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
-              {error}
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        if(!open) resetState(); 
+        onClose();
+    }}>
+      <DialogContent 
+        className={
+          isResetSent 
+            ? "sm:max-w-md bg-green-50 border-green-200" // Estilo para o estado de sucesso (card verde)
+            : "sm:max-w-md" // Estilo padrão (card branco)
+        }
+      >
+        {/* Renderização Condicional do Conteúdo do Modal */}
+        {isResetSent ? (
+          // --- TELA DE SUCESSO DO ENVIO DE EMAIL (CARD VERDE) ---
+          <div className="animate-in fade-in zoom-in duration-300 text-left">
+            <h3 className="text-lg font-bold text-green-900 mb-2 mt-4">
+              E-mail enviado!
+            </h3>
+            <p className="text-sm text-green-800 mb-6 leading-relaxed">
+              Se um usuário com este e-mail existir, um link de redefinição foi enviado.
             </p>
-          )}
-
-          <div>
-            <label
-              htmlFor="email-modal"
-              className="block text-sm font-medium text-neutral-700 mb-1"
+            <Button 
+              className="bg-neutral-900 text-white hover:bg-neutral-800 font-medium w-fit px-6"
+              onClick={() => setIsResetSent(false)}
             >
-              Email
-            </label>
-            <Input
-              type="email"
-              id="email-modal"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label
-                htmlFor="password-modal"
-                className="block text-sm font-medium text-neutral-700"
-              >
-                Senha
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium text-blue-600 hover:underline"
-                onClick={onClose} // Fecha o modal ao navegar
-              >
-                Esqueceu sua senha?
-              </Link>
-            </div>
-            <Input
-              type="password"
-              id="password-modal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full gap-2"
-              size="lg"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <LogIn className="h-5 w-5" />
-              )}
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              Voltar para o Login
             </Button>
           </div>
-        </form>
+        ) : (
+          // --- TELA DE LOGIN PADRÃO ---
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-center">
+                Acesse sua conta
+              </DialogTitle>
+            </DialogHeader>
 
-         <p className="mt-4 text-center text-sm text-neutral-600">
-            Não tem uma conta?{' '}
-            <Link
-              href="/register"
-              className="font-semibold text-blue-600 hover:underline"
-              onClick={onClose} // Fecha o modal ao navegar
-            >
-              Cadastre-se
-            </Link>
-          </p>
+            <form onSubmit={handleLoginSubmit} className="space-y-6 px-4 pb-4">
+              {error && (
+                <p className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+                  {error}
+                </p>
+              )}
+
+              <div>
+                <label
+                  htmlFor="email-modal"
+                  className="block text-sm font-medium text-neutral-700 mb-1"
+                >
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  id="email-modal"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label
+                    htmlFor="password-modal"
+                    className="block text-sm font-medium text-neutral-700"
+                  >
+                    Senha
+                  </label>
+                  {/* ALTERADO: Agora é um botão que dispara a lógica de validação */}
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-sm font-medium text-blue-600 hover:underline disabled:opacity-50"
+                    disabled={isLoading}
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                </div>
+                <Input
+                  type="password"
+                  id="password-modal"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required // Mantido required para o submit do form de login
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <LogIn className="h-5 w-5" />
+                  )}
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
+              </div>
+            </form>
+
+            <p className="mt-4 text-center text-sm text-neutral-600">
+              Não tem uma conta?{' '}
+              <Link
+                href="/register"
+                className="font-semibold text-blue-600 hover:underline"
+                onClick={onClose}
+              >
+                Cadastre-se
+              </Link>
+            </p>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
 }
-// --- FIM DO NOVO COMPONENTE ---
 
-
-// Componente Card de Vaga (Ícones corrigidos)
+// Componente Card de Vaga
 function JobCard({ job }: { job: Job }) {
   const timeAgo = (date: string) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -538,21 +607,20 @@ function JobCard({ job }: { job: Job }) {
   );
 }
 
-
-// Componente Card de Feature (Ícone corrigido)
+// Componente Card de Feature
 function FeatureCard({
-  icon: Icon, // Alterado para receber o componente do ícone
+  icon: Icon,
   title,
   description,
 }: {
-  icon: React.ElementType; // Tipo alterado
+  icon: React.ElementType;
   title: string;
   description: string;
 }) {
   return (
     <div className="flex flex-col items-center text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-        <Icon className="h-6 w-6" /> {/* Renderiza o ícone */}
+        <Icon className="h-6 w-6" />
       </div>
       <h3 className="mt-6 text-xl font-semibold text-neutral-900">{title}</h3>
       <p className="mt-2 text-base text-neutral-600">{description}</p>
