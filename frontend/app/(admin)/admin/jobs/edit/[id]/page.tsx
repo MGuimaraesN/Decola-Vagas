@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import {
   Select,
   SelectContent,
@@ -176,12 +176,9 @@ export default function AdminEditJobPage() {
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição Completa</label>
-          <Textarea 
-            id="description" 
+          <RichTextEditor
             value={description} 
-            onChange={e => setDescription(e.target.value)} 
-            className="min-h-[150px]" 
-            required 
+            onChange={setDescription}
           />
         </div>
 

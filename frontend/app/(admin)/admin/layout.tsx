@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Briefcase, // Importado
 } from 'lucide-react';
+import { Breadcrumbs } from '../../../components/ui/breadcrumbs';
 
 // Links de navegação do Admin
 const allAdminLinks: NavLink[] = [
@@ -153,6 +154,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <Header />
           <main className="flex-1 overflow-y-auto bg-neutral-50 p-6 md:p-10">
             <Toaster richColors />
+            <Breadcrumbs />
             {children}
           </main>
         </div>

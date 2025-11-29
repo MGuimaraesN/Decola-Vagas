@@ -6,12 +6,11 @@ import {
     sendJobModifiedNotification,
     sendJobUnavailableNotification
 } from '../services/mail.service.js';
+import { jobCreateSchema, jobEditSchema } from '../utils/schemas.js';
 
 export class JobController {
 
     async create(req: Request, res: Response) {
-        // Recebe institutionId do corpo da requisição (opcional)
-        const { title, description, areaId, categoryId, status, email, telephone, companyName, institutionId } = req.body;
         const authorId = (req as any).user?.userId;
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
 
@@ -20,6 +19,10 @@ export class JobController {
         }
 
         try {
+            // Validação Zod
+            const data = jobCreateSchema.parse(req.body);
+            const { title, description, areaId, categoryId, status, email, telephone, companyName, institutionId } = data;
+
             // 1. Determinar qual a instituição alvo (enviada no body ou a ativa)
             let targetInstitutionId = activeInstitutionId;
 
@@ -34,7 +37,7 @@ export class JobController {
 
             // Se um ID foi enviado e o usuário tem permissão para escolher (Admin/Superadmin)
             if (institutionId && (isSuperAdmin || isAdmin)) {
-                targetInstitutionId = parseInt(institutionId);
+                targetInstitutionId = institutionId;
                 
                 // Se NÃO for superadmin, verifica se ele é membro da instituição alvo com cargo apropriado
                 if (!isSuperAdmin) {
@@ -54,7 +57,6 @@ export class JobController {
             }
 
             // Verifica cargo específico na instituição alvo (ou se é superadmin global)
-            // Se for superadmin, permitimos direto. Se não, checamos o vínculo específico.
             let isPublic = false;
             
             if (!isSuperAdmin) {
@@ -65,23 +67,19 @@ export class JobController {
                 isPublic = targetRole.role.name === 'empresa';
             }
 
-            if (!title || !description || !areaId || !categoryId || !email || !telephone) {
-                return res.status(400).json({ error: 'Todos os campos (exceto status e empresa) são obrigatórios.' });
-            }
-
             const job = await prisma.job.create({
                 data: {
                     title: title,
                     description: description,
-                    areaId: parseInt(areaId),
-                    categoryId: parseInt(categoryId),
+                    areaId: areaId,
+                    categoryId: categoryId,
                     status: status || 'rascunho',
                     email: email,
                     telephone: telephone,
                     authorId: authorId,
-                    institutionId: targetInstitutionId, // Usa a instituição definida
+                    institutionId: targetInstitutionId,
                     ip: req.ip || 'IP não disponível',
-                    companyName: companyName,
+                    companyName: companyName ?? null, // Handle undefined
                     isPublic: isPublic,
                 },
                 include: {
@@ -89,7 +87,6 @@ export class JobController {
                 }
             });
 
-            // Lógica de notificação (mantida igual)
             if (['published', 'open'].includes(job.status)) {
                 try {
                     let recipients: string[] = [];
@@ -105,7 +102,8 @@ export class JobController {
                     }
                     const uniqueRecipients = [...new Set(recipients)];
                     if (uniqueRecipients.length > 0) {
-                        sendNewJobNotification(uniqueRecipients, job.title, job.institution.name)
+                        // Cast job to any to avoid TS error on institution access if inference fails
+                        sendNewJobNotification(uniqueRecipients, job.title, (job as any).institution.name)
                             .catch(err => console.error("Falha background envio email nova vaga:", err));
                     }
                 } catch (emailError) {
@@ -115,15 +113,12 @@ export class JobController {
 
             res.status(201).json(job);
         } catch (error) {
-            console.error('Erro ao criar vaga:', error);
-            res.status(500).json({ error: 'Erro interno do servidor' });
+            throw error;
         }
     }
 
     async edit(req: Request, res: Response) {
             const { id } = req.params;
-            // 1. Receber institutionId do body
-            const { title, description, areaId, categoryId, status, email, telephone, companyName, institutionId } = req.body;
             const authorId = (req as any).user?.userId
 
             if (!authorId) {
@@ -135,15 +130,21 @@ export class JobController {
             }
 
             try {
+                // Validação Zod
+                const data = jobEditSchema.parse(req.body);
+                // Clean undefineds
+                const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+
+                const { institutionId, ...otherFields } = cleanData;
+
                 const job = await prisma.job.findUnique({
                     where: { id: parseInt(id) },
                 });
 
-                if (!job) {
+                if (!job || job.deletedAt) {
                     return res.status(404).json({ error: 'Vaga não encontrada' });
                 }
 
-                // Verificar permissões do usuário
                 const userRoles = await prisma.userInstitutionRole.findMany({
                     where: { userId: authorId },
                     include: { role: true }
@@ -152,8 +153,6 @@ export class JobController {
                 const isSuperAdmin = userRoles.some(ur => ur.role.name === 'superadmin');
                 const isAdmin = userRoles.some(ur => ur.role.name === 'admin');
 
-                // Verifica se tem permissão na instituição ATUAL da vaga
-                // (Para editar, precisa ser autor, ou admin/superadmin)
                 const hasPermissionOnCurrent = isSuperAdmin || (job.authorId === authorId) || 
                     userRoles.some(ur => ur.institutionId === job.institutionId && ur.role.name === 'admin');
 
@@ -161,18 +160,15 @@ export class JobController {
                     return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
                 }
 
-                // 2. Lógica para atualizar a instituição (se fornecida e diferente)
                 let newInstitutionId = job.institutionId;
                 
-                if (institutionId && parseInt(institutionId) !== job.institutionId) {
-                    // Apenas Admins e Superadmins podem mover vagas de instituição
+                if (institutionId && (institutionId as number) !== job.institutionId) {
                     if (!isAdmin && !isSuperAdmin) {
                         return res.status(403).json({ error: 'Apenas administradores podem alterar a instituição da vaga.' });
                     }
 
-                    newInstitutionId = parseInt(institutionId);
+                    newInstitutionId = institutionId as number;
 
-                    // Se não for Superadmin, verifica se é Admin na NOVA instituição
                     if (!isSuperAdmin) {
                         const isTargetAdmin = userRoles.some(
                             ur => ur.institutionId === newInstitutionId && ur.role.name === 'admin'
@@ -183,25 +179,20 @@ export class JobController {
                     }
                 }
 
+                const status = otherFields.status as string | undefined;
+                const description = otherFields.description as string | undefined;
+
                 const isStatusChanged = status && status !== job.status;
                 const isDescriptionChanged = description && description !== job.description;
 
                 const updatedJob = await prisma.job.update({
                     where: { id: parseInt(id) },
                     data: {
-                        title, 
-                        description, 
-                        areaId: parseInt(areaId), // Garante inteiros
-                        categoryId: parseInt(categoryId), // Garante inteiros
-                        status, 
-                        email, 
-                        telephone, 
-                        companyName,
-                        institutionId: newInstitutionId, // Atualiza ID da instituição
+                        ...otherFields,
+                        institutionId: newInstitutionId,
                     },
                 });
 
-                // Notificações (Lógica mantida)
                 try {
                     if (isStatusChanged && status === 'closed') {
                         const savedJobs = await prisma.savedJob.findMany({
@@ -232,8 +223,7 @@ export class JobController {
                 if ((error as any).code === 'P2025') {
                     return res.status(404).json({ error: 'Vaga não encontrada para atualização' });
                 }
-                console.error('Erro ao editar vaga:', error);
-                res.status(500).json({ error: 'Erro interno do servidor' });
+                throw error;
             }
         }
         
@@ -246,7 +236,7 @@ export class JobController {
 
         try {
             const job = await prisma.job.findUnique({ where: { id: parseInt(id) } });
-            if (!job) { return res.status(404).json({ error: 'Vaga não encontrada' }); }
+            if (!job || job.deletedAt) { return res.status(404).json({ error: 'Vaga não encontrada' }); }
 
             const userRole = await prisma.userInstitutionRole.findFirst({
                 where: { userId: authorId, institutionId: job.institutionId },
@@ -269,8 +259,11 @@ export class JobController {
                 ));
             } catch (notifyError) { console.error('Erro nas notificações de delete:', notifyError); }
 
-            await prisma.savedJob.deleteMany({ where: { jobId: parseInt(id) } });
-            await prisma.job.delete({ where: { id: parseInt(id) } });
+            // Soft Delete
+            await prisma.job.update({
+                where: { id: parseInt(id) },
+                data: { deletedAt: new Date() }
+            });
 
             res.status(204).send();
         } catch (error) {
@@ -282,11 +275,15 @@ export class JobController {
     async getJobsByInstitution(req: Request, res: Response) {
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
         const userId = (req as any).user?.userId; 
-        const { search, areaId, categoryId } = req.query;
+        const { search, areaId, categoryId, page = '1', limit = '20', sort = 'desc' } = req.query;
 
         if (!userId) { return res.status(401).json({ error: 'Usuário não autenticado.' }); }
 
         try {
+            const pageNum = parseInt(page as string) || 1;
+            const limitNum = parseInt(limit as string) || 20;
+            const skip = (pageNum - 1) * limitNum;
+
             const userRoles = await prisma.userInstitutionRole.findMany({
                 where: { userId: userId },
                 include: { role: true }
@@ -294,7 +291,9 @@ export class JobController {
             const roleNames = userRoles.map(ur => ur.role.name);
             const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
 
-            const whereClause: Prisma.JobWhereInput = {};
+            const whereClause: Prisma.JobWhereInput = {
+                deletedAt: null
+            };
 
             if (search && typeof search === 'string' && search.trim() !== '') {
                 whereClause.title = { contains: search as string };
@@ -316,17 +315,30 @@ export class JobController {
                 ];
             }
 
-            const jobs = await prisma.job.findMany({
-                where: whereClause,
-                include: {
-                    author: { select: { firstName: true, lastName: true, email: true } },
-                    area: true,
-                    category: true,
-                    institution: { select: { name: true } }
-                },
-                orderBy: { createdAt: 'desc' }
+            const [jobs, total] = await prisma.$transaction([
+                prisma.job.findMany({
+                    where: whereClause,
+                    include: {
+                        author: { select: { firstName: true, lastName: true, email: true } },
+                        area: true,
+                        category: true,
+                        institution: { select: { name: true } }
+                    },
+                    orderBy: { createdAt: sort === 'asc' ? 'asc' : 'desc' },
+                    skip,
+                    take: limitNum
+                }),
+                prisma.job.count({ where: whereClause })
+            ]);
+
+            res.status(200).json({
+                data: jobs,
+                meta: {
+                    total,
+                    page: pageNum,
+                    lastPage: Math.ceil(total / limitNum)
+                }
             });
-            res.status(200).json(jobs);
         } catch (error) {
             console.error('Erro ao buscar vagas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
@@ -335,8 +347,17 @@ export class JobController {
 
     async getPublicJobs(req: Request, res: Response) {
         try {
-            const { search, areaId, categoryId } = req.query;
-            const whereFilters: Prisma.JobWhereInput = { status: { in: ['published', 'open'] } };
+            const { search, areaId, categoryId, page = '1', limit = '20', sort = 'desc' } = req.query;
+
+            const pageNum = parseInt(page as string) || 1;
+            const limitNum = parseInt(limit as string) || 20;
+            const skip = (pageNum - 1) * limitNum;
+
+            const whereFilters: Prisma.JobWhereInput = {
+                status: { in: ['published', 'open'] },
+                isPublic: true,
+                deletedAt: null
+            };
 
             if (search && typeof search === 'string' && search.trim() !== '') {
                 whereFilters.title = { contains: search as string };
@@ -348,28 +369,27 @@ export class JobController {
                 whereFilters.categoryId = parseInt(categoryId as string);
             }
 
-            const publicJobs = await prisma.job.findMany({
-                where: { ...whereFilters, isPublic: true },
-                include: {
-                    area: true, category: true, institution: { select: { name: true } },
-                },
-                orderBy: { createdAt: 'desc' },
+            const [jobs, total] = await prisma.$transaction([
+                prisma.job.findMany({
+                    where: whereFilters,
+                    include: {
+                        area: true, category: true, institution: { select: { name: true } },
+                    },
+                    orderBy: { createdAt: sort === 'asc' ? 'asc' : 'desc' },
+                    skip,
+                    take: limitNum
+                }),
+                prisma.job.count({ where: whereFilters })
+            ]);
+
+            res.status(200).json({
+                data: jobs,
+                meta: {
+                    total,
+                    page: pageNum,
+                    lastPage: Math.ceil(total / limitNum)
+                }
             });
-
-            const institutionJobs = await prisma.job.findMany({
-                where: { ...whereFilters, isPublic: false },
-                include: {
-                    area: true, category: true, institution: { select: { name: true } },
-                },
-                orderBy: { createdAt: 'desc' },
-                take: 5
-            });
-
-            let allJobs = [...publicJobs, ...institutionJobs];
-            allJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            const jobs = allJobs.slice(0, 20);
-
-            res.status(200).json(jobs);
         } catch (error) {
             console.error('Erro ao buscar vagas públicas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
@@ -389,7 +409,35 @@ export class JobController {
                     institution: { select: { name: true } }
                 }
             });
-            if (!job) { return res.status(404).json({ error: 'Vaga não encontrada' }); }
+
+            if (!job || job.deletedAt) { return res.status(404).json({ error: 'Vaga não encontrada' }); }
+
+            // Se for pública, retorna direto
+            if (job.isPublic) {
+                return res.status(200).json(job);
+            }
+
+            // Se for privada, precisa estar autenticado e ter permissão
+            const user = (req as any).user;
+            if (!user) {
+                return res.status(401).json({ error: 'Acesso negado. Vaga privada.' });
+            }
+
+            // Verifica vínculo (simplificado: se tem role na instituição)
+            const userRole = await prisma.userInstitutionRole.findFirst({
+                where: { userId: user.userId, institutionId: job.institutionId }
+            });
+
+            const userGlobalRoles = await prisma.userInstitutionRole.findMany({
+                where: { userId: user.userId },
+                include: { role: true }
+            });
+            const isGlobalAdmin = userGlobalRoles.some(ur => ['admin', 'superadmin'].includes(ur.role.name));
+
+            if (!userRole && !isGlobalAdmin) {
+                return res.status(403).json({ error: 'Você não tem permissão para visualizar esta vaga.' });
+            }
+
             res.status(200).json(job);
         } catch (error) {
             console.error('Erro ao buscar vaga:', error);
@@ -409,9 +457,9 @@ export class JobController {
             const roleNames = userRoles.map(ur => ur.role.name);
             const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
 
-            let whereClause: Prisma.JobWhereInput = {}; 
+            let whereClause: Prisma.JobWhereInput = { deletedAt: null };
             if (!isGlobalAdmin) {
-                whereClause = { authorId: authorId };
+                whereClause = { authorId: authorId, deletedAt: null };
             }
             
             const jobs = await prisma.job.findMany({

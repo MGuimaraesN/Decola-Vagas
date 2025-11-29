@@ -289,6 +289,7 @@ export class UserController {
                 firstName: userData?.firstName,
                 lastName: userData?.lastName,
                 email: userData?.email,
+                avatarUrl: userData?.avatarUrl,
                 institutions: userData?.institutions,
                 activeInstitutionId: userData?.activeInstitutionId,
                 bio: userData?.bio,
@@ -421,6 +422,27 @@ export class UserController {
             res.status(200).json(updatedUser);
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+
+    async uploadAvatar(req: Request, res: Response) {
+        try {
+            const userEmail = (req as any).user?.email;
+            if (!req.file) {
+                return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+            }
+
+            const avatarUrl = `/uploads/${req.file.filename}`;
+
+            await prisma.user.update({
+                where: { email: userEmail },
+                data: { avatarUrl }
+            });
+
+            res.status(200).json({ avatarUrl });
+        } catch (error) {
+            console.error('Erro ao fazer upload de avatar:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }

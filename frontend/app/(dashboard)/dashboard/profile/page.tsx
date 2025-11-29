@@ -18,21 +18,18 @@ const initialProfileState = {
 };
 
 export default function ProfilePage() {
-  const { user, token, fetchUserProfile } = useAuth(); // Usando fetchUserProfile do contexto
+  const { user, token, fetchUserProfile } = useAuth();
 
-  // State para o formulário de perfil
   const [profileData, setProfileData] = useState(initialProfileState);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isAvatarLoading, setIsAvatarLoading] = useState(false);
 
-  // State para o formulário de senha
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
-
-  // Popula o formulário de perfil com os dados do usuário quando o componente é montado
 
   useEffect(() => {
     document.title = 'Meu Perfil | Decola Vagas';
@@ -59,6 +56,35 @@ export default function ProfilePage() {
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0] || !token) return;
+
+    setIsAvatarLoading(true);
+    const formData = new FormData();
+    formData.append('avatar', e.target.files[0]);
+
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile/avatar`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (res.ok) {
+            toast.success('Foto atualizada com sucesso!');
+            fetchUserProfile();
+        } else {
+            toast.error('Erro ao atualizar foto.');
+        }
+    } catch (err) {
+        toast.error('Erro de rede.');
+    } finally {
+        setIsAvatarLoading(false);
+    }
   };
 
   const handleProfileSubmit = async (e: FormEvent) => {
@@ -145,14 +171,48 @@ export default function ProfilePage() {
         <p className="text-neutral-600 mt-1">Veja e edite suas informações.</p>
       </div>
 
-      {/* Formulário de Perfil */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-          <h2 className="text-xl font-semibold">Informações Profissionais</h2>
-          <p className="text-sm text-neutral-500 mt-1">
-            Essas informações ajudam os recrutadores a conhecerem você melhor.
-          </p>
+        <div className="md:col-span-1 space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold">Foto de Perfil</h2>
+            <p className="text-sm text-neutral-500 mt-1">
+              Essa foto será exibida para recrutadores.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-sm border border-neutral-100">
+             <div className="h-24 w-24 rounded-full overflow-hidden bg-neutral-200 mb-4 relative">
+                 {user.avatarUrl ? (
+                     <img
+                        src={`${process.env.NEXT_PUBLIC_API_URL}${user.avatarUrl}`}
+                        alt="Avatar"
+                        className="h-full w-full object-cover"
+                     />
+                 ) : (
+                     <div className="h-full w-full flex items-center justify-center text-neutral-400 text-2xl font-bold">
+                        {user.firstName?.charAt(0)}{user.lastName?.charAt(0)}
+                     </div>
+                 )}
+                 {isAvatarLoading && (
+                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs">
+                         ...
+                     </div>
+                 )}
+             </div>
+             <label className="cursor-pointer">
+                 <span className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition">Alterar Foto</span>
+                 <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} disabled={isAvatarLoading} />
+             </label>
+          </div>
+
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold">Informações</h2>
+             <p className="text-sm text-neutral-500 mt-1">
+                Informações profissionais.
+             </p>
+          </div>
         </div>
+
         <div className="md:col-span-2">
           <form onSubmit={handleProfileSubmit} className="bg-white p-6 rounded-lg shadow-sm space-y-6">
             <div>
@@ -194,7 +254,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Formulário de Senha */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1">
            <h2 className="text-xl font-semibold">Alterar Senha</h2>
