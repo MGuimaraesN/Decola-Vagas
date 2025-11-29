@@ -43,7 +43,7 @@ jobRoutes.get(
 );
 jobRoutes.get(
     '/:id',
-    authMiddleware.auth,
+    authMiddleware.optionalAuth,
     jobController.getById
 );
 

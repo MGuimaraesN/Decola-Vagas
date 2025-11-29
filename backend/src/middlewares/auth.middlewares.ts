@@ -40,4 +40,38 @@ export class AuthMiddleware {
     }
   }
 
+  async optionalAuth(req: Request, res: Response, next: NextFunction) {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            return next();
+        }
+
+        const parts = authHeader.split(' ');
+
+        if (parts.length !== 2 || parts[0] !== 'Bearer') {
+             // Formato inválido, ignora e segue como guest
+             return next();
+        }
+
+        const token = parts[1];
+        const secret = process.env.JWT_SECRET;
+
+        if (!secret) {
+            // Se não tem secret configurado, erro 500
+             console.error("JWT_SECRET não definido");
+             return next();
+        }
+
+        const payload = jwt.verify(token as string, secret) as UserPayload;
+        (req as any).user = payload;
+
+        next();
+    } catch (error) {
+        // Token inválido/expirado -> Segue como guest
+        next();
+    }
+  }
+
 };
