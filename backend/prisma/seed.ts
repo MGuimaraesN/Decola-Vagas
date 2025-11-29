@@ -9,18 +9,17 @@ function getRandomItem<T>(items: T[]): T {
 }
 
 async function main() {
-  console.log('🚀 Iniciando Seed Massivo...');
+  console.log('🚀 Iniciando Seed Otimizado...');
 
   // =================================================
   // 1. ROLES (Papéis do Sistema)
   // =================================================
   const rolesList = [
-    'superadmin', 'admin', 'professor', 'coordenador', 'empresa', 'student',
-    'visitante', 'auditor', 'mentor', 'suporte'
+    'superadmin', 'admin', 'professor', 'coordenador', 'empresa', 'student'
   ];
-  const roleMap: Record<string, string> = {};
+  const roleMap: Record<string, number> = {};
 
-  console.log(`👤 Criando/Atualizando ${rolesList.length} Roles...`);
+  console.log(`👤 Criando/Atualizando Roles...`);
   for (const name of rolesList) {
     const role = await prisma.role.upsert({
       where: { name },
@@ -31,19 +30,16 @@ async function main() {
   }
 
   // =================================================
-  // 2. AREAS (Áreas de Atuação - 20+)
+  // 2. AREAS
   // =================================================
   const areasList = [
-    'Engenharia de Software', 'Ciência de Dados', 'Segurança da Informação',
-    'Design UI/UX', 'Marketing Digital', 'Recursos Humanos',
-    'Contabilidade', 'Direito Civil', 'Enfermagem', 'Medicina',
-    'Arquitetura', 'Engenharia Civil', 'Logística', 'Vendas',
-    'Atendimento ao Cliente', 'Gestão de Projetos', 'Biomedicina',
-    'Nutrição', 'Jornalismo', 'Psicologia', 'Educação Física'
+    'Engenharia de Software', 'Ciência de Dados', 'Design UI/UX', 
+    'Marketing Digital', 'Recursos Humanos', 'Contabilidade', 
+    'Direito Civil', 'Enfermagem', 'Administração', 'Psicologia'
   ];
-  const areaIds: string[] = [];
+  const areaIds: number[] = [];
 
-  console.log(`📚 Criando/Atualizando ${areasList.length} Áreas...`);
+  console.log(`📚 Criando/Atualizando Áreas...`);
   for (const name of areasList) {
     const area = await prisma.area.upsert({
       where: { name },
@@ -54,20 +50,15 @@ async function main() {
   }
 
   // =================================================
-  // 3. INSTITUTIONS (20 Instituições)
+  // 3. INSTITUTIONS
   // =================================================
   const institutionsList = [
-    'Universidade Federal Alpha', 'Instituto Beta de Tecnologia', 'Faculdade Gama',
-    'Universidade Delta do Sul', 'Escola Técnica Epsilon', 'Zeta University',
-    'Faculdade de Artes Omega', 'Instituto Politécnico Sigma', 'Universidade Aberta Theta',
-    'Centro Universitário Iota', 'Kappa Business School', 'Lambda Tech Academy',
-    'Faculdade de Medicina Mu', 'Escola de Direito Nu', 'Xi Design School',
-    'Omicron Science Center', 'Pi Mathematics Institute', 'Rho Engineering College',
-    'Tau Health Academy', 'Upsilon Global University'
+    'Universidade Federal Alpha', 'Instituto Beta de Tecnologia', 
+    'Faculdade Gama', 'Universidade Delta do Sul'
   ];
-  const instIds: string[] = [];
+  const instIds: number[] = [];
 
-  console.log(`iu Criando/Atualizando ${institutionsList.length} Instituições...`);
+  console.log(`iu Criando/Atualizando Instituições...`);
   for (const name of institutionsList) {
     const inst = await prisma.institution.upsert({
       where: { name },
@@ -78,16 +69,15 @@ async function main() {
   }
 
   // =================================================
-  // 4. CATEGORIES (Categorias de Vagas)
+  // 4. CATEGORIES
   // =================================================
   const categoriesList = [
     'Estágio', 'Vaga Júnior', 'Vaga Pleno', 'Vaga Sênior',
-    'Trainee', 'Iniciação Científica', 'Voluntariado',
-    'Freelance', 'Temporário', 'PJ', 'Summer Job', 'Part-time'
+    'Trainee', 'Iniciação Científica'
   ];
-  const catIds: string[] = [];
+  const catIds: number[] = [];
 
-  console.log(`🏷️ Criando/Atualizando ${categoriesList.length} Categorias...`);
+  console.log(`🏷️ Criando/Atualizando Categorias...`);
   for (const name of categoriesList) {
     const cat = await prisma.category.upsert({
       where: { name },
@@ -98,90 +88,110 @@ async function main() {
   }
 
   // =================================================
-  // 5. USERS (Usuários fixos + Gerados)
+  // 5. USERS (Contas Funcionais para Teste)
   // =================================================
-  console.log('👥 Criando Usuários...');
+  console.log('👥 Criando Usuários de Teste...');
   const password = await bcrypt.hash('123456', 10);
-  const userIds: string[] = [];
-
-  // 5.1 Usuários Principais (Admin e SuperAdmin)
-  const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@decolavagas.com' },
-    update: {},
-    create: {
-      firstName: 'Super', lastName: 'Admin', email: 'superadmin@decolavagas.com',
-      password, ip: '127.0.0.1'
-    }
-  });
   
-  // 5.2 Loop para criar 30 usuários genéricos (Alunos e Empresas)
-  for (let i = 1; i <= 30; i++) {
-    const isEmpresa = i % 5 === 0; // A cada 5 usuários, 1 é empresa
-    const email = isEmpresa ? `empresa${i}@decolavagas.com` : `aluno${i}@decolavagas.com`;
-    const roleId = isEmpresa ? roleMap['empresa'] : roleMap['student'];
-    const roleName = isEmpresa ? 'Recrutador' : 'Aluno';
+  // Lista de usuários para criar. 
+  // O 'roleKey' deve bater com as chaves do roleMap acima.
+  const usersToCreate = [
+    { email: 'superadmin@decolavagas.com', role: 'superadmin', first: 'Super', last: 'Admin' },
+    { email: 'admin@decolavagas.com', role: 'admin', first: 'Admin', last: 'Institucional' },
+    { email: 'professor@decolavagas.com', role: 'professor', first: 'Professor', last: 'Silva' },
+    { email: 'coordenador@decolavagas.com', role: 'coordenador', first: 'Coordenador', last: 'Santos' },
+    { email: 'empresa@decolavagas.com', role: 'empresa', first: 'Recrutador', last: 'Tech' },
+    { email: 'aluno@decolavagas.com', role: 'student', first: 'Aluno', last: 'Exemplar' },
+  ];
 
+  const authorUserIds: number[] = []; // IDs de quem pode postar vagas
+
+  for (const u of usersToCreate) {
+    // Escolhe uma instituição fixa (a primeira) para facilitar os testes
+    const mainInstitutionId = instIds[0]; 
+    const roleId = roleMap[u.role];
+
+    // 1. Cria ou atualiza o User
     const user = await prisma.user.upsert({
-      where: { email },
-      update: {},
+      where: { email: u.email },
+      update: {
+        // Garante que se o usuário já existir, a instituição ativa seja corrigida
+        activeInstitutionId: mainInstitutionId 
+      },
       create: {
-        firstName: roleName,
-        lastName: `Teste ${i}`,
-        email,
+        firstName: u.first,
+        lastName: u.last,
+        email: u.email,
         password,
-        ip: '127.0.0.1'
+        ip: '127.0.0.1',
+        activeInstitutionId: mainInstitutionId, // IMPORTANTE: Define a instituição ativa
+        bio: `Bio de teste para ${u.first}`,
+        linkedinUrl: 'https://linkedin.com',
       }
     });
-    userIds.push(user.id);
 
-    // Vínculo com instituição aleatória
-    try {
-      await prisma.userInstitutionRole.create({
-        data: {
+    // 2. Cria o vínculo UserInstitutionRole
+    await prisma.userInstitutionRole.upsert({
+      where: {
+        userId_institutionId: {
           userId: user.id,
-          institutionId: getRandomItem(instIds),
-          roleId: roleId
+          institutionId: mainInstitutionId
         }
-      });
-    } catch (e) { /* Ignora duplicidade */ }
+      },
+      update: { roleId: roleId },
+      create: {
+        userId: user.id,
+        institutionId: mainInstitutionId,
+        roleId: roleId
+      }
+    });
+
+    // Se for um papel que pode criar vagas, adiciona ao array de autores
+    if (['empresa', 'professor', 'coordenador', 'admin', 'superadmin'].includes(u.role)) {
+      authorUserIds.push(user.id);
+    }
+
+    console.log(`   ✅ Usuário criado: ${u.email} (Senha: 123456)`);
   }
 
   // =================================================
-  // 6. JOBS (Gerando 50 vagas aleatórias)
+  // 6. JOBS (Gerando Vagas)
   // =================================================
-  console.log('💼 Gerando 50 Vagas Aleatórias...');
+  console.log('💼 Gerando Vagas Aleatórias...');
   
-  const jobTitles = ['Desenvolvedor', 'Analista', 'Gerente', 'Auxiliar', 'Consultor', 'Designer', 'Técnico', 'Pesquisador'];
-  const jobLevels = ['Júnior', 'Pleno', 'Sênior', 'Estagiário', 'Bolsista'];
+  const jobTitles = ['Desenvolvedor', 'Analista', 'Gerente', 'Auxiliar', 'Consultor', 'Designer'];
+  const jobLevels = ['Júnior', 'Pleno', 'Sênior', 'Estagiário'];
 
-  for (let i = 0; i < 50; i++) {
-    // Sorteia dados para montar a vaga
+  // Vamos criar 20 vagas
+  for (let i = 0; i < 20; i++) {
     const randomAreaId = getRandomItem(areaIds);
     const randomCatId = getRandomItem(catIds);
-    const randomInstId = getRandomItem(instIds);
-    const randomAuthorId = getRandomItem(userIds); // Pega um usuário qualquer como autor (idealmente seria só empresa)
+    const randomInstId = getRandomItem(instIds); // Vagas espalhadas pelas instituições
+    
+    // IMPORTANTE: Autor deve ser alguém válido (não aluno)
+    const randomAuthorId = getRandomItem(authorUserIds); 
 
-    // Busca o nome da área para compor o título (ex: "Analista Júnior em Marketing")
-    // Como só temos o ID aqui, vamos fazer titulos genéricos combinados
     const title = `${getRandomItem(jobTitles)} ${getRandomItem(jobLevels)}`;
     
     await prisma.job.create({
       data: {
-        authorId: randomAuthorId, // Autor da vaga
+        authorId: randomAuthorId,
         institutionId: randomInstId,
         areaId: randomAreaId,
         categoryId: randomCatId,
         title: title,
-        description: `Esta é uma vaga gerada automaticamente para a posição de ${title}. Ótima oportunidade de crescimento. Requisitos: Proatividade e vontade de aprender.`,
-        email: `vaga${i}@exemplo.com`,
-        telephone: `119${Math.floor(Math.random() * 100000000)}`, // Gera telefone aleatório
-        status: 'published',
+        description: `Vaga gerada automaticamente para ${title}. Requisitos: Vontade de aprender e crescer com a equipe.`,
+        email: `rh${i}@empresa.com`,
+        telephone: `119${Math.floor(Math.random() * 100000000)}`,
+        status: i % 5 === 0 ? 'rascunho' : 'published', // Algumas vagas como rascunho
+        isPublic: i % 3 === 0, // Algumas vagas públicas (empresa)
+        companyName: i % 3 === 0 ? 'Tech Solutions Ltda' : undefined,
         ip: '127.0.0.1',
       },
     });
   }
 
-  console.log('✅ Seed completo finalizado! O banco está cheio de dados.');
+  console.log('✅ Seed finalizado com sucesso!');
 }
 
 main()
