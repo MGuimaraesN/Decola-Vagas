@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-{/* Importação do Textarea */}
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -16,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 
-// Interfaces
 interface Category {
   id: number;
   name: string;
@@ -25,8 +23,11 @@ interface Area {
   id: number;
   name: string;
 }
+interface Institution {
+  id: number;
+  name: string;
+}
 
-// Esta é a nova página de edição de vaga DENTRO do /admin
 export default function AdminEditJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,17 +37,23 @@ export default function AdminEditJobPage() {
   const [categoryId, setCategoryId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [status, setStatus] = useState('rascunho');
+  const [institutionId, setInstitutionId] = useState('');
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const params = useParams();
   const { id } = params;
 
-  // Fetch job data, categories, and areas
+  const canEditInstitution = useMemo(() => {
+    return user?.institutions.some((inst: any) => 
+      ['admin', 'superadmin'].includes(inst.role.name)
+    );
+  }, [user]);
 
   useEffect(() => {
     document.title = 'Admin: Editar Vaga | Decola Vagas';
@@ -57,15 +64,28 @@ export default function AdminEditJobPage() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // A API para buscar a vaga é a mesma
-        const [jobRes, catRes, areaRes] = await Promise.all([
+        const promises = [
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/areas`, { headers: { 'Authorization': `Bearer ${token}` } })
-        ]);
+        ];
+
+        if (canEditInstitution) {
+            promises.push(fetch(`${process.env.NEXT_PUBLIC_API_URL}/institutions`, { headers: { 'Authorization': `Bearer ${token}` } }));
+        }
+
+        const responses = await Promise.all(promises);
+        
+        const jobRes = responses[0];
+        const catRes = responses[1];
+        const areaRes = responses[2];
 
         if (catRes.ok) setCategories(await catRes.json());
         if (areaRes.ok) setAreas(await areaRes.json());
+        
+        if (canEditInstitution && responses[3] && responses[3].ok) {
+            setInstitutions(await responses[3].json());
+        }
 
         if (jobRes.ok) {
           const jobData = await jobRes.json();
@@ -77,6 +97,9 @@ export default function AdminEditJobPage() {
           setCategoryId(jobData.categoryId.toString());
           setCompanyName(jobData.companyName || '');
           setStatus(jobData.status);
+          if (jobData.institutionId) {
+              setInstitutionId(jobData.institutionId.toString());
+          }
         } else {
           toast.error('Falha ao carregar dados da vaga.');
         }
@@ -88,7 +111,7 @@ export default function AdminEditJobPage() {
       }
     };
     fetchData();
-  }, [token, id]);
+  }, [token, id, canEditInstitution]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -99,28 +122,32 @@ export default function AdminEditJobPage() {
     setIsLoading(true);
 
     try {
-      // A API de edição é a mesma
+      const body: any = {
+        title,
+        description,
+        email,
+        telephone,
+        areaId: parseInt(areaId),
+        categoryId: parseInt(categoryId),
+        companyName: companyName,
+        status: status
+      };
+
+      if (canEditInstitution && institutionId) {
+          body.institutionId = parseInt(institutionId);
+      }
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/edit/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          title,
-          description,
-          email,
-          telephone,
-          areaId: parseInt(areaId),
-          categoryId: parseInt(categoryId),
-          companyName: companyName,
-          status: status
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
         toast.success('Vaga atualizada com sucesso!');
-        // ALTERAÇÃO AQUI: Redireciona de volta para a lista de vagas do admin
         router.push('/admin/jobs');
       } else {
         const data = await res.json();
@@ -138,11 +165,8 @@ export default function AdminEditJobPage() {
   }
 
   return (
-    // Container máximo e centralizado para formulários
     <div className="max-w-4xl mx-auto">
-      {/* Título padronizado */}
       <h1 className="text-2xl font-bold mb-6 text-neutral-900">Editar Vaga</h1>
-      {/* Card padronizado em volta do formulário */}
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6 border border-neutral-200/60">
 
         <div>
@@ -152,7 +176,6 @@ export default function AdminEditJobPage() {
 
         <div>
           <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição Completa</label>
-          {/* Componente Textarea aplicado */}
           <Textarea 
             id="description" 
             value={description} 
@@ -173,11 +196,13 @@ export default function AdminEditJobPage() {
           </div>
         </div>
 
+        {/* Grid de 3 colunas para alinhar Status e Instituição lado a lado na segunda linha */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label htmlFor="companyName" className="block text-sm font-medium text-neutral-700 mb-1">Nome da Empresa (Opcional)</label>
             <Input type="text" id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
           </div>
+
           <div>
             <label htmlFor="areaId" className="block text-sm font-medium text-neutral-700 mb-1">Área</label>
             <Select value={areaId} onValueChange={setAreaId} required>
@@ -189,6 +214,7 @@ export default function AdminEditJobPage() {
               </SelectContent>
             </Select>
           </div>
+
           <div>
             <label htmlFor="categoryId" className="block text-sm font-medium text-neutral-700 mb-1">Categoria</label>
             <Select value={categoryId} onValueChange={setCategoryId} required>
@@ -200,6 +226,7 @@ export default function AdminEditJobPage() {
               </SelectContent>
             </Select>
           </div>
+
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
             <Select value={status} onValueChange={setStatus} required>
@@ -213,10 +240,26 @@ export default function AdminEditJobPage() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Campo de Instituição (Condicional) - MOVIDO PARA CÁ (Ao lado de Status) */}
+          {canEditInstitution && (
+            <div>
+                <label htmlFor="institution" className="block text-sm font-medium text-neutral-700 mb-1">Instituição (Admin)</label>
+                <Select value={institutionId} onValueChange={setInstitutionId}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Selecione a instituição" />
+                </SelectTrigger>
+                <SelectContent>
+                    {institutions.map((inst) => (
+                    <SelectItem key={inst.id} value={String(inst.id)}>{inst.name}</SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-4 pt-4">
-           {/* ALTERAÇÃO AQUI: router.back() vai para /admin/jobs */}
            <Button type="button" variant="outline" onClick={() => router.push('/admin/jobs')} disabled={isLoading}>
             Cancelar
            </Button>

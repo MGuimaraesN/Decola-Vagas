@@ -1,12 +1,17 @@
 import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
 import { Prisma } from '@prisma/client';
+import {
+    sendNewJobNotification,
+    sendJobModifiedNotification,
+    sendJobUnavailableNotification
+} from '../services/mail.service.js';
 
 export class JobController {
 
     async create(req: Request, res: Response) {
-        // Agora 'status' é pego do body, com 'rascunho' como padrão
-        const { title, description, areaId, categoryId, status, email, telephone, companyName } = req.body;
+        // Recebe institutionId do corpo da requisição (opcional)
+        const { title, description, areaId, categoryId, status, email, telephone, companyName, institutionId } = req.body;
         const authorId = (req as any).user?.userId;
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
 
@@ -14,46 +19,100 @@ export class JobController {
              return res.status(401).json({ error: 'Usuário não autenticado.' });
         }
 
-        if (!activeInstitutionId) {
-            return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
-        }
-
         try {
-            const userRole = await prisma.userInstitutionRole.findFirst({
-                where: {
-                    userId: authorId,
-                    institutionId: activeInstitutionId,
-                },
-                include: { role: true },
+            // 1. Determinar qual a instituição alvo (enviada no body ou a ativa)
+            let targetInstitutionId = activeInstitutionId;
+
+            // Busca todas as roles do usuário para verificar permissões globais
+            const userRoles = await prisma.userInstitutionRole.findMany({
+                where: { userId: authorId },
+                include: { role: true }
             });
 
-            const allowedRoles = ['professor', 'coordenador', 'empresa', 'admin', 'superadmin'];
-            if (!userRole || !allowedRoles.includes(userRole.role.name)) {
-                return res.status(403).json({ error: 'Você não tem permissão para criar vagas.' });
+            const isSuperAdmin = userRoles.some(ur => ur.role.name === 'superadmin');
+            const isAdmin = userRoles.some(ur => ur.role.name === 'admin');
+
+            // Se um ID foi enviado e o usuário tem permissão para escolher (Admin/Superadmin)
+            if (institutionId && (isSuperAdmin || isAdmin)) {
+                targetInstitutionId = parseInt(institutionId);
+                
+                // Se NÃO for superadmin, verifica se ele é membro da instituição alvo com cargo apropriado
+                if (!isSuperAdmin) {
+                    const hasAccessToTarget = userRoles.some(
+                        ur => ur.institutionId === targetInstitutionId && 
+                        ['admin', 'professor', 'coordenador'].includes(ur.role.name)
+                    );
+                    
+                    if (!hasAccessToTarget) {
+                        return res.status(403).json({ error: 'Você não tem permissão para criar vagas nesta instituição.' });
+                    }
+                }
             }
 
-            const isPublic = userRole.role.name === 'empresa';
+            if (!targetInstitutionId) {
+                return res.status(400).json({ error: 'Nenhuma instituição definida para a vaga.' });
+            }
+
+            // Verifica cargo específico na instituição alvo (ou se é superadmin global)
+            // Se for superadmin, permitimos direto. Se não, checamos o vínculo específico.
+            let isPublic = false;
+            
+            if (!isSuperAdmin) {
+                const targetRole = userRoles.find(ur => ur.institutionId === targetInstitutionId);
+                if (!targetRole || !['professor', 'coordenador', 'empresa', 'admin'].includes(targetRole.role.name)) {
+                     return res.status(403).json({ error: 'Permissão insuficiente na instituição selecionada.' });
+                }
+                isPublic = targetRole.role.name === 'empresa';
+            }
 
             if (!title || !description || !areaId || !categoryId || !email || !telephone) {
-            return res.status(400).json({ error: 'Todos os campos (exceto status) são obrigatórios.' });
-        }
+                return res.status(400).json({ error: 'Todos os campos (exceto status e empresa) são obrigatórios.' });
+            }
 
             const job = await prisma.job.create({
                 data: {
                     title: title,
                     description: description,
-                    areaId: areaId,
-                    categoryId: categoryId,
-                    status: status || 'rascunho', // Se nenhum status for enviado, salva como 'rascunho'
+                    areaId: parseInt(areaId),
+                    categoryId: parseInt(categoryId),
+                    status: status || 'rascunho',
                     email: email,
                     telephone: telephone,
                     authorId: authorId,
-                    institutionId: activeInstitutionId,
+                    institutionId: targetInstitutionId, // Usa a instituição definida
                     ip: req.ip || 'IP não disponível',
                     companyName: companyName,
                     isPublic: isPublic,
                 },
+                include: {
+                    institution: true
+                }
             });
+
+            // Lógica de notificação (mantida igual)
+            if (['published', 'open'].includes(job.status)) {
+                try {
+                    let recipients: string[] = [];
+                    if (job.isPublic) {
+                        const allUsers = await prisma.user.findMany({ select: { email: true } });
+                        recipients = allUsers.map(u => u.email);
+                    } else {
+                        const institutionUsers = await prisma.userInstitutionRole.findMany({
+                            where: { institutionId: job.institutionId },
+                            include: { user: { select: { email: true } } }
+                        });
+                        recipients = institutionUsers.map(ur => ur.user.email);
+                    }
+                    const uniqueRecipients = [...new Set(recipients)];
+                    if (uniqueRecipients.length > 0) {
+                        sendNewJobNotification(uniqueRecipients, job.title, job.institution.name)
+                            .catch(err => console.error("Falha background envio email nova vaga:", err));
+                    }
+                } catch (emailError) {
+                    console.error('Erro ao preparar envio de e-mail nova vaga:', emailError);
+                }
+            }
+
             res.status(201).json(job);
         } catch (error) {
             console.error('Erro ao criar vaga:', error);
@@ -62,160 +121,183 @@ export class JobController {
     }
 
     async edit(req: Request, res: Response) {
-        const { id } = req.params;
-        // Adicionado 'status' aqui também
-        const { title, description, areaId, categoryId, status, email, telephone, companyName } = req.body;
-        const authorId = (req as any).user?.userId
+            const { id } = req.params;
+            // 1. Receber institutionId do body
+            const { title, description, areaId, categoryId, status, email, telephone, companyName, institutionId } = req.body;
+            const authorId = (req as any).user?.userId
 
-        if (!authorId) {
-             return res.status(401).json({ error: 'Usuário não autenticado.' });
-        }
-
-        if (!id) {
-            return res.status(400).json({ error: 'O ID da vaga é obrigatório' });
-        }
-
-        try {
-            const job = await prisma.job.findUnique({
-                where: { id: parseInt(id) },
-            });
-
-            if (!job) {
-                return res.status(404).json({ error: 'Vaga não encontrada' });
+            if (!authorId) {
+                return res.status(401).json({ error: 'Usuário não autenticado.' });
             }
 
-            const userRole = await prisma.userInstitutionRole.findFirst({
-                where: {
-                    userId: authorId,
-                    institutionId: job.institutionId,
-                },
-                include: { role: true },
-            });
-
-            // Permite edição se for o autor, admin ou superadmin
-            const isAdmin = userRole?.role.name === 'admin';
-            const isSuperAdmin = userRole?.role.name === 'superadmin';
-
-            if (job.authorId !== authorId && !isAdmin && !isSuperAdmin) {
-                return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
+            if (!id) {
+                return res.status(400).json({ error: 'O ID da vaga é obrigatório' });
             }
 
-            const updatedJob = await prisma.job.update({
-                where: { id: parseInt(id) },
-                data: {
-                    title: title,
-                    description: description,
-                    areaId: areaId,
-                    categoryId: categoryId,
-                    status: status, // Permite atualização de status
-                    email: email,
-                    telephone: telephone,
-                    companyName: companyName,
-                },
-            });
-            res.status(200).json(updatedJob);
-        } catch (error) {
-            if ((error as any).code === 'P2025') {
-                 return res.status(404).json({ error: 'Vaga não encontrada para atualização' });
+            try {
+                const job = await prisma.job.findUnique({
+                    where: { id: parseInt(id) },
+                });
+
+                if (!job) {
+                    return res.status(404).json({ error: 'Vaga não encontrada' });
+                }
+
+                // Verificar permissões do usuário
+                const userRoles = await prisma.userInstitutionRole.findMany({
+                    where: { userId: authorId },
+                    include: { role: true }
+                });
+
+                const isSuperAdmin = userRoles.some(ur => ur.role.name === 'superadmin');
+                const isAdmin = userRoles.some(ur => ur.role.name === 'admin');
+
+                // Verifica se tem permissão na instituição ATUAL da vaga
+                // (Para editar, precisa ser autor, ou admin/superadmin)
+                const hasPermissionOnCurrent = isSuperAdmin || (job.authorId === authorId) || 
+                    userRoles.some(ur => ur.institutionId === job.institutionId && ur.role.name === 'admin');
+
+                if (!hasPermissionOnCurrent) {
+                    return res.status(403).json({ error: 'Você não tem permissão para editar esta vaga' });
+                }
+
+                // 2. Lógica para atualizar a instituição (se fornecida e diferente)
+                let newInstitutionId = job.institutionId;
+                
+                if (institutionId && parseInt(institutionId) !== job.institutionId) {
+                    // Apenas Admins e Superadmins podem mover vagas de instituição
+                    if (!isAdmin && !isSuperAdmin) {
+                        return res.status(403).json({ error: 'Apenas administradores podem alterar a instituição da vaga.' });
+                    }
+
+                    newInstitutionId = parseInt(institutionId);
+
+                    // Se não for Superadmin, verifica se é Admin na NOVA instituição
+                    if (!isSuperAdmin) {
+                        const isTargetAdmin = userRoles.some(
+                            ur => ur.institutionId === newInstitutionId && ur.role.name === 'admin'
+                        );
+                        if (!isTargetAdmin) {
+                            return res.status(403).json({ error: 'Você não tem permissão na instituição de destino.' });
+                        }
+                    }
+                }
+
+                const isStatusChanged = status && status !== job.status;
+                const isDescriptionChanged = description && description !== job.description;
+
+                const updatedJob = await prisma.job.update({
+                    where: { id: parseInt(id) },
+                    data: {
+                        title, 
+                        description, 
+                        areaId: parseInt(areaId), // Garante inteiros
+                        categoryId: parseInt(categoryId), // Garante inteiros
+                        status, 
+                        email, 
+                        telephone, 
+                        companyName,
+                        institutionId: newInstitutionId, // Atualiza ID da instituição
+                    },
+                });
+
+                // Notificações (Lógica mantida)
+                try {
+                    if (isStatusChanged && status === 'closed') {
+                        const savedJobs = await prisma.savedJob.findMany({
+                            where: { jobId: job.id },
+                            include: { user: { select: { email: true } } }
+                        });
+                        const recipients = savedJobs.map(sj => sj.user.email);
+                        recipients.forEach(email => {
+                            sendJobUnavailableNotification(email, job.title).catch(e => console.error(`Erro envio email`, e));
+                        });
+
+                    } else if (isStatusChanged || isDescriptionChanged) {
+                        const savedJobs = await prisma.savedJob.findMany({
+                            where: { jobId: job.id },
+                            include: { user: { select: { email: true } } }
+                        });
+                        const recipients = savedJobs.map(sj => sj.user.email);
+                        recipients.forEach(email => {
+                            sendJobModifiedNotification(email, updatedJob.title).catch(e => console.error(`Erro envio email`, e));
+                        });
+                    }
+                } catch (notifyError) {
+                    console.error('Erro ao processar notificações de edição:', notifyError);
+                }
+
+                res.status(200).json(updatedJob);
+            } catch (error) {
+                if ((error as any).code === 'P2025') {
+                    return res.status(404).json({ error: 'Vaga não encontrada para atualização' });
+                }
+                console.error('Erro ao editar vaga:', error);
+                res.status(500).json({ error: 'Erro interno do servidor' });
             }
-            console.error('Erro ao editar vaga:', error);
-            res.status(500).json({ error: 'Erro interno do servidor' });
         }
-    }
-
+        
     async delete(req: Request, res: Response) {
         const { id } = req.params;
         const authorId = (req as any).user?.userId;
 
-        if (!authorId) {
-             return res.status(401).json({ error: 'Usuário não autenticado.' });
-        }
-
-        if (!id) {
-            return res.status(400).json({ error: 'O ID da vaga é obrigatório' });
-        }
+        if (!authorId) { return res.status(401).json({ error: 'Usuário não autenticado.' }); }
+        if (!id) { return res.status(400).json({ error: 'O ID da vaga é obrigatório' }); }
 
         try {
-            const job = await prisma.job.findUnique({
-                where: { id: parseInt(id) },
-            });
+            const job = await prisma.job.findUnique({ where: { id: parseInt(id) } });
+            if (!job) { return res.status(404).json({ error: 'Vaga não encontrada' }); }
 
-            if (!job) {
-                return res.status(404).json({ error: 'Vaga não encontrada' });
-            }
-
-            // Busca os cargos do usuário. Idealmente, isso deveria checar
-            // se ele é superadmin em *qualquer* instituição, não apenas na da vaga.
-            // A lógica de `getJobsByInstitution` está melhor para isso.
             const userRole = await prisma.userInstitutionRole.findFirst({
-                where: {
-                    userId: authorId,
-                    institutionId: job.institutionId,
-                },
+                where: { userId: authorId, institutionId: job.institutionId },
                 include: { role: true },
             });
-
             const isSuperAdmin = userRole?.role.name === 'superadmin';
 
             if (job.authorId !== authorId && !isSuperAdmin) {
                 return res.status(403).json({ error: 'Você não tem permissão para excluir esta vaga' });
             }
 
-            // Deleta primeiro as vagas salvas associadas
-            await prisma.savedJob.deleteMany({
-                where: { jobId: parseInt(id) },
-            });
+            try {
+                 const savedJobs = await prisma.savedJob.findMany({
+                    where: { jobId: job.id },
+                    include: { user: { select: { email: true } } }
+                });
+                const recipients = savedJobs.map(sj => sj.user.email);
+                await Promise.all(recipients.map(email =>
+                     sendJobUnavailableNotification(email, job.title).catch(e => console.error(`Erro envio email`, e))
+                ));
+            } catch (notifyError) { console.error('Erro nas notificações de delete:', notifyError); }
 
-            // Depois deleta a vaga
-            await prisma.job.delete({
-                where: { id: parseInt(id) },
-            });
+            await prisma.savedJob.deleteMany({ where: { jobId: parseInt(id) } });
+            await prisma.job.delete({ where: { id: parseInt(id) } });
 
             res.status(204).send();
         } catch (error) {
-            if ((error as any).code === 'P2025') {
-                 return res.status(404).json({ error: 'Vaga não encontrada para exclusão' });
-            }
             console.error('Erro ao excluir vaga:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }
 
-    /**
-     * Esta é a função para o "Mural do Dashboard".
-     * A correção está aqui.
-     */
     async getJobsByInstitution(req: Request, res: Response) {
         const activeInstitutionId = (req as any).user?.activeInstitutionId;
         const userId = (req as any).user?.userId; 
         const { search, areaId, categoryId } = req.query;
 
-        if (!userId) {
-            return res.status(401).json({ error: 'Usuário não autenticado.' });
-        }
+        if (!userId) { return res.status(401).json({ error: 'Usuário não autenticado.' }); }
 
         try {
-            // --- INÍCIO DA CORREÇÃO ---
-            
-            // 1. Busca TODOS os cargos do usuário, de TODAS as instituições
             const userRoles = await prisma.userInstitutionRole.findMany({
                 where: { userId: userId },
                 include: { role: true }
             });
-
-            // 2. Verifica se ele é 'admin' or 'superadmin' em QUALQUER lugar
             const roleNames = userRoles.map(ur => ur.role.name);
             const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
 
-            
-            // 3. Monta a cláusula de busca
             const whereClause: Prisma.JobWhereInput = {};
 
-            // 4. Adiciona os filtros de busca (search, area, category)
             if (search && typeof search === 'string' && search.trim() !== '') {
-                whereClause.title = {
-                    contains: search as string,
-                };
+                whereClause.title = { contains: search as string };
             }
             if (areaId && typeof areaId === 'string' && areaId.trim() !== '') {
                 whereClause.areaId = parseInt(areaId as string);
@@ -224,119 +306,67 @@ export class JobController {
                 whereClause.categoryId = parseInt(categoryId as string);
             }
 
-            // 5. Adiciona a lógica de permissão (O PONTO PRINCIPAL DA CORREÇÃO)
             if (!isGlobalAdmin) {
-                // Se NÃO for admin, filtra pela instituição ativa E vagas públicas
                 if (!activeInstitutionId) {
                     return res.status(400).json({ error: 'Nenhuma instituição ativa selecionada.' });
                 }
-                
                 whereClause.OR = [
-                    { isPublic: false, institutionId: activeInstitutionId }, // Vagas da instituição
-                    { isPublic: true }, // Vagas de empresa
+                    { isPublic: false, institutionId: activeInstitutionId },
+                    { isPublic: true },
                 ];
             }
-            // Se FOR admin global, NENHUM filtro de instituição ou 'isPublic' é adicionado.
-            // O `whereClause` conterá apenas os filtros de busca (search, area, etc).
-            // Se nenhum filtro for passado, `whereClause` será `{}` e buscará TUDO.
-
-            // --- FIM DA CORREÇÃO ---
 
             const jobs = await prisma.job.findMany({
-                where: whereClause, // 6. Executa a query com a cláusula 'where' corrigida
+                where: whereClause,
                 include: {
-                    author: {
-                        select: { firstName: true, lastName: true, email: true }
-                    },
+                    author: { select: { firstName: true, lastName: true, email: true } },
                     area: true,
                     category: true,
-                    institution: {
-                        select: { name: true }
-                    }
+                    institution: { select: { name: true } }
                 },
-                orderBy: {
-                    createdAt: 'desc' // Ordena por mais recente
-                }
+                orderBy: { createdAt: 'desc' }
             });
             res.status(200).json(jobs);
         } catch (error) {
-            console.error('Erro ao buscar vagas por instituição:', error);
+            console.error('Erro ao buscar vagas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }
 
-    // --- FUNÇÃO ATUALIZADA ---
     async getPublicJobs(req: Request, res: Response) {
         try {
             const { search, areaId, categoryId } = req.query;
+            const whereFilters: Prisma.JobWhereInput = { status: { in: ['published', 'open'] } };
 
-            // 1. Define os filtros básicos (status e query params)
-            const whereFilters: Prisma.JobWhereInput = {
-                status: { in: ['published', 'open'] } // Só queremos vagas ativas
-            };
-
-            // --- CORREÇÃO APLICADA AQUI TAMBÉM ---
             if (search && typeof search === 'string' && search.trim() !== '') {
-                whereFilters.title = {
-                    contains: search as string,
-                };
+                whereFilters.title = { contains: search as string };
             }
-
             if (areaId && typeof areaId === 'string' && areaId.trim() !== '') {
                 whereFilters.areaId = parseInt(areaId as string);
             }
-
             if (categoryId && typeof categoryId === 'string' && categoryId.trim() !== '') {
                 whereFilters.categoryId = parseInt(categoryId as string);
             }
-            // --- FIM DA CORREÇÃO ---
 
-            // 2. Busca TODAS as vagas de Empresa (isPublic: true)
             const publicJobs = await prisma.job.findMany({
-                where: {
-                    ...whereFilters,
-                    isPublic: true,
-                },
+                where: { ...whereFilters, isPublic: true },
                 include: {
-                    area: true,
-                    category: true,
-                    institution: {
-                        select: { name: true }
-                    },
+                    area: true, category: true, institution: { select: { name: true } },
                 },
-                orderBy: {
-                    createdAt: 'desc'
-                },
-                // Removemos o 'take' para buscar todas as vagas de empresa
+                orderBy: { createdAt: 'desc' },
             });
 
-            // 3. Busca ALGUMAS vagas de Instituição (isPublic: false)
-            // Vamos pegar as 5 mais recentes para misturar.
             const institutionJobs = await prisma.job.findMany({
-                where: {
-                    ...whereFilters,
-                    isPublic: false,
-                },
+                where: { ...whereFilters, isPublic: false },
                 include: {
-                    area: true,
-                    category: true,
-                    institution: {
-                        select: { name: true }
-                    },
+                    area: true, category: true, institution: { select: { name: true } },
                 },
-                orderBy: {
-                    createdAt: 'desc'
-                },
-                take: 5 // Pegamos 5 vagas recentes de instituições
+                orderBy: { createdAt: 'desc' },
+                take: 5
             });
 
-            // 4. Combina as duas listas
             let allJobs = [...publicJobs, ...institutionJobs];
-
-            // 5. Reordena a lista combinada por data de criação
             allJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-            // 6. Aplica o limite de 20 (que existia antes) à lista combinada
             const jobs = allJobs.slice(0, 20);
 
             res.status(200).json(jobs);
@@ -345,92 +375,54 @@ export class JobController {
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }
+
     async getById(req: Request, res: Response) {
         const { id } = req.params;
-        const authorId = (req as any).user?.userId;
-
-        if (!id) {
-            return res.status(400).json({ error: 'O ID da vaga é obrigatório' });
-        }
+        if (!id) { return res.status(400).json({ error: 'O ID da vaga é obrigatório' }); }
 
         try {
             const job = await prisma.job.findUnique({
                 where: { id: parseInt(id) },
                 include: {
-                    area: true,
-                    category: true,
-                    author: {
-                        select: { firstName: true, lastName: true }
-                    },
-                     // --- Adicionado para ter o nome da instituição ---
-                    institution: {
-                        select: { name: true }
-                    }
+                    area: true, category: true,
+                    author: { select: { firstName: true, lastName: true } },
+                    institution: { select: { name: true } }
                 }
             });
-
-            if (!job) {
-                return res.status(404).json({ error: 'Vaga não encontrada' });
-            }
-
-            // TODO: Segurança - Verificar se o usuário (se não for admin) pertence à instituição da vaga
-            // if (job.authorId !== authorId && !isAdmin) { ... }
-
+            if (!job) { return res.status(404).json({ error: 'Vaga não encontrada' }); }
             res.status(200).json(job);
         } catch (error) {
-            console.error('Erro ao buscar vaga por ID:', error);
+            console.error('Erro ao buscar vaga:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }
 
     async getAllJobs(req: Request, res: Response) {
         try {
-            // --- INÍCIO DA ALTERAÇÃO ---
             const authorId = (req as any).user?.userId;
+            if (!authorId) { return res.status(401).json({ error: 'Usuário não autenticado.' }); }
 
-            if (!authorId) {
-                return res.status(401).json({ error: 'Usuário não autenticado.' });
-            }
-
-            // 1. Buscar todos os cargos do usuário
             const userRoles = await prisma.userInstitutionRole.findMany({
                 where: { userId: authorId },
                 include: { role: true }
             });
             const roleNames = userRoles.map(ur => ur.role.name);
-
-            // 2. Verificar se é admin ou superadmin
             const isGlobalAdmin = roleNames.includes('admin') || roleNames.includes('superadmin');
 
-            let whereClause: Prisma.JobWhereInput = {}; // Corrigido para let
-
-            if (isGlobalAdmin) {
-                // Admins e Superadmins veem TUDO
-                whereClause = {};
-            } else {
-                // Outros (professor, coordenador, empresa) veem APENAS as que criaram
-                whereClause = {
-                    authorId: authorId
-                };
+            let whereClause: Prisma.JobWhereInput = {}; 
+            if (!isGlobalAdmin) {
+                whereClause = { authorId: authorId };
             }
             
-            // 3. Aplicar o filtro na query
             const jobs = await prisma.job.findMany({
-                where: whereClause, // Aplica o filtro
+                where: whereClause,
                  include: {
-                    author: {
-                        select: { firstName: true, lastName: true, email: true }
-                    },
-                    area: true,
-                    category: true,
-                    institution: true,
+                    author: { select: { firstName: true, lastName: true, email: true } },
+                    area: true, category: true, institution: true,
                 },
-                orderBy: {
-                    createdAt: 'desc'
-                }
+                orderBy: { createdAt: 'desc' }
             });
             res.status(200).json(jobs);
-            // --- FIM DA ALTERAÇÃO ---
         } catch (error) {
             console.error('Erro ao buscar todas as vagas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
