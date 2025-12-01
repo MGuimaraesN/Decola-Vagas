@@ -1,7 +1,7 @@
 <div align="center">
-<img src="frontend/public/decola-vagas-logo.png" alt="Decola Vagas Logo" width="120" />
+<img src="frontend/public/decola-vagas-logo.png" alt="Logo Decola Vagas" width="120" />
 <h1>🚀 Decola Vagas</h1>
-<h3>O Hub Definitivo de Oportunidades Académicas e Profissionais</h3>
+<h3>O Hub Definitivo de Oportunidades Acadêmicas e Profissionais</h3>
 
 <p>
 <a href="#-sobre-o-projeto">Sobre</a> •
@@ -22,19 +22,21 @@ Diferente de murais físicos ou grupos de mensagens desorganizados, o Decola Vag
 📸 Screenshots
 
 <div align="center">
-<!-- Adicione prints do seu projeto na pasta .github/assets ou use links externos -->
-<img src="https://www.google.com/search?q=https://via.placeholder.com/800x400%3Ftext%3DDashboard%2Bdo%2BAluno" alt="Dashboard Preview" />
+<!-- Imagens de demonstração (Placeholders) -->
+<img src="https://www.google.com/search?q=https://placehold.co/800x400/1e293b/FFF%3Ftext%3DDashboard%2Bdo%2BAluno" alt="Dashboard do Aluno" />
 
 
 
 
 
-<img src="https://www.google.com/search?q=https://via.placeholder.com/800x400%3Ftext%3DPainel%2BAdministrativo" alt="Admin Preview" />
+
+
+<img src="https://www.google.com/search?q=https://placehold.co/800x400/1e293b/FFF%3Ftext%3DPainel%2BAdministrativo" alt="Painel Administrativo" />
 </div>
 
 ✨ Funcionalidades
 
-O sistema possui um controlo de acesso baseado em cargos (RBAC) que habilita funcionalidades específicas para cada perfil:
+O sistema possui um controle de acesso baseado em cargos (RBAC) que habilita funcionalidades específicas para cada perfil:
 
 🎓 Para Alunos
 
@@ -62,9 +64,9 @@ Feedback Automático: O sistema notifica os candidatos sobre mudanças no proces
 
 Dashboard Analítico: Métricas globais de adesão, vagas ativas e instituições.
 
-Gestão Multi-Instituição: Controlo de múltiplas universidades e empresas parceiras.
+Gestão Multi-Instituição: Controle de múltiplas universidades e empresas parceiras.
 
-Controlo de Utilizadores: Gestão total de permissões e atribuição de cargos.
+Controle de Usuários: Gestão total de permissões e atribuição de cargos.
 
 Auditoria: Visão geral de todas as atividades do sistema.
 
@@ -120,7 +122,7 @@ Pré-requisitos
 
 Node.js (v20+)
 
-Docker Desktop (Opcional, mas recomendado para a Base de Dados)
+Docker Desktop (Recomendado para o Banco de Dados)
 
 Git
 
@@ -132,17 +134,17 @@ cd Decola-Vagas
 
 2. Configurar Variáveis de Ambiente
 
-Aceda à pasta backend e configure o ficheiro .env baseado no exemplo:
+Acesse a pasta backend e configure o arquivo .env baseado no exemplo:
 
 cd backend
 cp .env.example .env
 
 
-Nota: É necessário configurar as credenciais do Gmail (GMAIL_USER, GMAIL_APP_PASS) para que o envio de e-mails funcione corretamente.
+Nota Importante: É necessário configurar as credenciais do Gmail (GMAIL_USER, GMAIL_APP_PASS) no arquivo .env para que o envio de e-mails (recuperação de senha, boas-vindas) funcione corretamente.
 
 3. Instalação e Configuração
 
-Na raiz do projeto, execute o comando mágico que instala dependências do frontend, backend e configura a base de dados:
+Na raiz do projeto, execute o comando mágico que instala dependências do frontend, backend e configura a base de dados (certifique-se que o Docker está rodando):
 
 # Instala dependências, sobe o Docker do banco, roda migrações e seed
 npm run install:all
@@ -158,20 +160,22 @@ npx prisma migrate dev e npx prisma db seed (na pasta /backend)
 
 4. Executar o Projeto
 
-Para iniciar tanto o Frontend quanto o Backend em modo de desenvolvimento:
+Para iniciar tanto o Frontend quanto o Backend em modo de desenvolvimento simultaneamente:
 
 npm run dev
 
 
+Acesse os serviços:
+
 Frontend: http://localhost:3000
 
-Backend: http://localhost:5000
+Backend API: http://localhost:5000
 
 phpMyAdmin: http://localhost:3310
 
 🧪 Dados de Teste (Seed)
 
-Ao rodar a instalação, a base de dados é populada automaticamente. Pode utilizar as seguintes credenciais para teste:
+Ao rodar a instalação, a base de dados é populada automaticamente com dados fictícios. Utilize as seguintes credenciais para teste:
 
 Perfil
 
@@ -212,14 +216,14 @@ Decola-Vagas/
 │   │   ├── controllers/    # Lógica de Negócio
 │   │   ├── middlewares/    # Autenticação, RBAC, Uploads
 │   │   ├── routes/         # Definição de Rotas
-│   │   └── services/       # Serviços de E-mail, etc.
+│   │   └── services/       # Serviços de E-mail, Cron, etc.
 │   └── ...
 ├── frontend/               # Aplicação Next.js
 │   ├── app/                # App Router (Páginas)
-│   ├── components/         # Componentes Reutilizáveis (Shadcn)
-│   ├── context/            # AuthContext
+│   ├── components/         # Componentes Reutilizáveis (Shadcn/UI)
+│   ├── context/            # AuthContext (Gerenciamento de Sessão)
 │   └── ...
-└── database/               # Configuração Docker
+└── database/               # Configuração Docker (MySQL + phpMyAdmin)
 
 
 🤝 Contribuição
@@ -238,7 +242,7 @@ Abra um Pull Request
 
 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o ficheiro LICENSE para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
 
 <div align="center">
 Desenvolvido com 💙 por <a href="https://github.com/MGuimaraesN">Mateus Guimarães</a>
