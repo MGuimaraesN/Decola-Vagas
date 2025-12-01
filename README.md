@@ -1,106 +1,78 @@
-# Decola-Vagas
+# 🚀 Decola Vagas
 
-Um portal único que centraliza todas as oportunidades acadêmicas (estágios, IC e vagas) de todas as áreas. Chega de vagas perdidas em e-mails ou murais físicos. Professores e coordenadores postam, e todos os alunos podem filtrar e encontrar sua próxima oportunidade de forma fácil e rápida.
+![Project Status](https://img.shields.io/badge/status-em_desenvolvimento-orange)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=flat&logo=Prisma&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 
-Este projeto é um monorepo que contém:
+> **O Hub de Oportunidades Acadêmicas.** Centralize estágios, iniciação científica e vagas de emprego em um único portal integrado à sua instituição de ensino.
 
-  * **`frontend/`**: Uma aplicação Next.js (React).
-  * **`backend/`**: Uma API Express.js com Prisma e TypeScript.
-  * **`database/`**: Um arquivo `docker-compose.yml` para iniciar um banco de dados MySQL e o phpMyAdmin.
+---
 
-## 1\. Pré-requisitos
+## 📋 Sobre o Projeto
 
-Antes de começar, você precisará ter as seguintes ferramentas instaladas:
+O **Decola Vagas** resolve o problema da fragmentação de oportunidades em ambientes acadêmicos. Em vez de murais físicos ou e-mails perdidos, a plataforma oferece um ambiente unificado onde coordenadores, professores e empresas parceiras publicam vagas, e alunos podem se candidatar com facilidade.
 
-  * **Node.js**:
-      * **O que é?** Ambiente de execução para JavaScript (necessário para o `npm`, `frontend` e `backend`).
-      * **Como instalar?** Baixe a versão LTS (v20.x ou superior) em [nodejs.org](https://nodejs.org/).
-  * **Docker (com Docker Compose)**:
-      * **O que é?** Ferramenta para criar e gerenciar contêineres. Usaremos para rodar o banco de dados MySQL sem precisar instalá-lo manualmente.
-      * **Como instalar?** Baixe o [Docker Desktop](https://www.docker.com/products/docker-desktop/) para seu sistema (Windows, Mac ou Linux). O Docker Compose já vem incluído.
+O projeto é estruturado como um **Monorepo**, garantindo consistência entre o Frontend e o Backend.
 
-## 2\. Configuração do Banco de Dados (com Docker)
+---
 
-As credenciais do banco de dados já estão pré-configuradas no arquivo `database/docker-compose.yml`.
+## ✨ Funcionalidades Principais
 
-**1. Inicie o Contêiner do Banco de Dados**
-Navegue até a pasta `database/` e execute o comando:
+### 🎓 Para Alunos
+- **Mural de Vagas:** Filtros avançados por área, categoria e tipo.
+- **Candidatura Simplificada:** Aplicação em vagas com um clique (usando perfil ou PDF).
+- **Gestão de Currículo:** Upload de currículo e perfil profissional.
+- **Favoritos:** Salve vagas para analisar depois.
+- **Notificações:** Acompanhamento do status das candidaturas (Aprovado/Reprovado).
 
-```bash
-cd database
-docker-compose up -d
-```
+### 🏢 Para Recrutadores (Empresas/Professores)
+- **Gestão de Vagas:** Criação, edição e fechamento de vagas.
+- **Triagem de Candidatos:** Visualização de perfis e download de currículos.
+- **Workflow de Aprovação:** Aceitar ou rejeitar candidaturas com feedback automático.
 
-  * Isso iniciará dois serviços em segundo plano:
-      * Um banco de dados **MySQL** na porta `3306`.
-      * Um **phpMyAdmin** (interface gráfica) na porta `3310`.
+### 🛡️ Para Administradores
+- **Dashboard Analítico:** Métricas globais de usuários e vagas.
+- **Gestão de Usuários:** Controle total de permissões (RBAC) e instituições.
+- **Auditoria:** Visão geral de todas as atividades do sistema.
 
-**2. Crie o Arquivo `.env` do Backend**
-O backend (Prisma) precisa saber como se conectar ao banco de dados que você acabou de criar.
+---
 
-  * Crie um arquivo chamado `.env` dentro da pasta `backend/`.
-  * Copie e cole o conteúdo abaixo nele:
+## 🛠️ Stack Tecnológica
 
-<!-- end list -->
+### **Frontend** (`/frontend`)
+- **Framework:** [Next.js 15+](https://nextjs.org/) (App Router)
+- **Estilização:** Tailwind CSS + Shadcn/UI
+- **Ícones:** Lucide React
+- **Editor de Texto:** React Quill
 
-```env
-# /backend/.env
+### **Backend** (`/backend`)
+- **API:** Node.js com Express
+- **Linguagem:** TypeScript
+- **ORM:** Prisma (MySQL)
+- **Autenticação:** JWT & BCrypt
+- **Uploads:** Multer
+- **E-mails:** Nodemailer (Gmail SMTP)
+- **Jobs:** Node-Cron (Tarefas agendadas)
 
-# String de conexão baseada no docker-compose.yml
-DATABASE_URL="mysql://mateus:Decola2025.@localhost:3306/DecolaVagas"
-```
+### **Infraestrutura** (`/database`)
+- **Banco de Dados:** MySQL 8.0
+- **Containerização:** Docker & Docker Compose
+- **Gerenciamento de DB:** phpMyAdmin
 
-*(Esta string usa o usuário (`mateus`), senha (`Decola2025.`), porta (`3306`) e nome do banco (`DecolaVagas`) definidos no `docker-compose.yml`).*
+---
 
-**3. Execute as Migrações do Prisma**
-Com o banco de dados rodando, precisamos criar as tabelas (como a tabela `User`).
+## 🚀 Como Executar o Projeto
 
-  * Navegue até a pasta `backend/` e execute o comando de migração do Prisma:
+### 1. Pré-requisitos
+Certifique-se de ter instalado:
+- [Node.js](https://nodejs.org/) (v20+)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-<!-- end list -->
-
-```bash
-cd backend
-npx prisma migrate dev
-```
-
-  * Após a conclusão, volte para a pasta raiz do projeto:
-
-<!-- end list -->
-
-```bash
-cd ..
-```
-
-## 3\. Instalação das Dependências
-
-Na **raiz do projeto**, execute o script `install:all`. Ele instalará as dependências para a raiz, o `backend` e o `frontend`.
+### 2. Instalação
+Na raiz do projeto, execute o script que instala as dependências de todas as pastas:
 
 ```bash
 npm run install:all
-```
-
-## 4\. Executando a Aplicação Completa
-
-Com o banco de dados rodando e as dependências instaladas, basta executar o comando `dev` na **raiz do projeto**:
-
-```bash
-npm run dev
-```
-
-Este comando usará o `concurrently` para iniciar os dois servidores ao mesmo tempo:
-
-  * 🚀 **Backend (Express)** estará rodando em `http://localhost:5000`.
-  * 🚀 **Frontend (Next.js)** estará rodando em `http://localhost:3000`.
-
-Abra [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) no seu navegador para ver a aplicação.
-
------
-
-## Scripts Úteis
-
-  * **`npm run dev`**: Inicia ambos os servidores (backend e frontend).
-  * **`npm run install:all`**: Instala todas as dependências do monorepo.
-  * **`npm run dev --prefix backend`**: Inicia *apenas* o servidor backend.
-  * **`npm run dev --prefix frontend`**: Inicia *apenas* o servidor frontend.
-  * **`cd backend && npx prisma migrate dev`**: (Lembre-se de rodar este comando caso faça alterações no arquivo `backend/prisma/schema.prisma`).
