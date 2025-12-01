@@ -3,249 +3,86 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Network, Plus, Search, Pencil, Trash2 } from 'lucide-react';
 
-// Definindo a interface para uma Área
-interface Area {
-  id: number;
-  name: string;
-}
-
-const API_URL = 'http://localhost:5000/areas';
+interface Area { id: number; name: string; }
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/areas`;
 
 export default function AreasPage() {
   const [areas, setAreas] = useState<Area[]>([]);
-  const [selectedArea, setSelectedArea] = useState<Area | null>(null);
-  const [areaToDelete, setAreaToDelete] = useState<Area | null>(null);
+  const [filtered, setFiltered] = useState<Area[]>([]);
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Area | null>(null);
+  const [toDelete, setToDelete] = useState<Area | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [editAreaName, setEditAreaName] = useState('');
-
+  const [name, setName] = useState('');
   const { token } = useAuth();
 
-  // Função para buscar os dados
   const fetchData = async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
+    if (!token) return;
     setIsLoading(true);
     try {
-      const res = await fetch(API_URL, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAreas(data);
-      } else {
-        toast.error('Falha ao buscar áreas.');
-      }
-    } catch (error) {
-      toast.error('Erro de rede ao buscar áreas.');
-    } finally {
-      setIsLoading(false);
-    }
+      const res = await fetch(API_URL, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { const data = await res.json(); setAreas(data); setFiltered(data); }
+    } catch { toast.error('Erro de rede.'); } finally { setIsLoading(false); }
   };
 
-  // Carregar dados no mount
-    useEffect(() => {
-    document.title = 'Admin: Áreas | Decola Vagas';
-  }, []);
+  useEffect(() => { document.title = 'Admin: Áreas'; fetchData(); }, [token]);
+  useEffect(() => { setFiltered(areas.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))); }, [search, areas]);
 
-  useEffect(() => {
-    fetchData();
-  }, [token]);
-
-  // Funções do Modal
-  const openModal = (area: Area | null = null) => {
-    setSelectedArea(area);
-    setEditAreaName(area ? area.name : '');
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedArea(null);
-    setEditAreaName('');
-  };
-
-  // Funções do AlertDialog
-  const openAlertDialog = (area: Area) => {
-    setAreaToDelete(area);
-    setIsAlertDialogOpen(true);
-  };
-
-  const closeAlertDialog = () => {
-    setAreaToDelete(null);
-    setIsAlertDialogOpen(false);
-  };
-
-  // Funções de CRUD
   const handleSave = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!token) return;
-
-    const url = selectedArea ? `${API_URL}/${selectedArea.id}` : API_URL;
-    const method = selectedArea ? 'PUT' : 'POST';
-
+    e.preventDefault(); if (!token) return;
+    const url = selected ? `${API_URL}/${selected.id}` : API_URL;
+    const method = selected ? 'PUT' : 'POST';
     try {
-      const res = await fetch(url, {
-        method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: editAreaName }),
-      });
-
-      if (res.ok) {
-        toast.success(`Área ${selectedArea ? 'atualizada' : 'criada'} com sucesso!`);
-        closeModal();
-        fetchData(); // Re-fetch
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Falha ao salvar área.');
-      }
-    } catch (error) {
-      toast.error('Erro de rede ao salvar área.');
-    }
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ name }) });
+      if (res.ok) { toast.success('Salvo!'); setIsModalOpen(false); fetchData(); } else { toast.error('Erro ao salvar.'); }
+    } catch { toast.error('Erro de rede.'); }
   };
 
   const handleDelete = async () => {
-    if (!token || !areaToDelete) return;
-
+    if (!token || !toDelete) return;
     try {
-      const res = await fetch(`${API_URL}/${areaToDelete.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        toast.success('Área excluída com sucesso!');
-        closeAlertDialog();
-        fetchData(); // Re-fetch
-      } else {
-        toast.error('Falha ao excluir área.');
-      }
-    } catch (error) {
-      toast.error('Erro de rede ao excluir área.');
-    }
+      const res = await fetch(`${API_URL}/${toDelete.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) { toast.success('Excluído!'); setToDelete(null); fetchData(); } else { toast.error('Erro ao excluir.'); }
+    } catch { toast.error('Erro de rede.'); }
   };
 
-  if (isLoading) {
-    return <div>Carregando...</div>;
-  }
-
   return (
-    // Div container removida para preencher o layout
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gerenciamento de Áreas</h1>
-        <Button onClick={() => openModal()}>Nova Área</Button>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div><h1 className="text-2xl font-bold text-neutral-900">Áreas</h1><p className="text-neutral-500 text-sm">Áreas de atuação (TI, Saúde...)</p></div>
+        <Button onClick={() => { setSelected(null); setName(''); setIsModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700"><Plus className="mr-2 h-4 w-4" /> Nova Área</Button>
       </div>
-      {/* Card padronizado em volta da tabela */}
-      <div className="bg-white rounded-lg shadow-sm border">
+      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-neutral-200 shadow-sm max-w-md">
+        <Search className="h-4 w-4 text-neutral-400 ml-2" /><Input placeholder="Buscar..." className="border-none shadow-none focus-visible:ring-0 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+          <TableHeader className="bg-neutral-50"><TableRow><TableHead>Nome</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+          <TableBody>{isLoading ? <TableRow><TableCell colSpan={2} className="text-center py-8">Carregando...</TableCell></TableRow> : filtered.map(a => (
+            <TableRow key={a.id} className="hover:bg-neutral-50/50">
+              <TableCell className="font-medium flex items-center gap-3"><div className="h-8 w-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center"><Network className="h-4 w-4"/></div>{a.name}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button variant="ghost" size="icon" onClick={() => { setSelected(a); setName(a.name); setIsModalOpen(true); }} className="h-8 w-8 text-neutral-500 hover:text-blue-600"><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => setToDelete(a)} className="h-8 w-8 text-neutral-500 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {areas.map((area) => (
-              <TableRow key={area.id}>
-                <TableCell>{area.name}</TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => openModal(area)}>
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(area)}>
-                    Excluir
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+          ))}</TableBody>
         </Table>
       </div>
-
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedArea ? 'Editar' : 'Nova'} Área</DialogTitle>
-            <DialogDescription>
-              Preencha os dados para {selectedArea ? 'atualizar a' : 'criar uma nova'} área.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSave}>
-            <div className="py-4">
-              <label htmlFor="areaName" className="block text-sm font-medium mb-1">
-                Nome da Área
-              </label>
-              <Input
-                id="areaName"
-                type="text"
-                value={editAreaName}
-                onChange={(e) => setEditAreaName(e.target.value)}
-                required
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              <Button type="submit">Salvar</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
+        <DialogContent><DialogHeader><DialogTitle>{selected ? 'Editar' : 'Nova'} Área</DialogTitle></DialogHeader><form onSubmit={handleSave} className="py-4"><Input value={name} onChange={e => setName(e.target.value)} required /><DialogFooter className="mt-4"><Button type="submit">Salvar</Button></DialogFooter></form></DialogContent>
       </Dialog>
-
-      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a área "{areaToDelete?.name}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+      <AlertDialog open={!!toDelete} onOpenChange={o => !o && setToDelete(null)}>
+        <AlertDialogContent><DialogHeader><DialogTitle>Excluir?</DialogTitle></DialogHeader><DialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={handleDelete} className="bg-red-600">Excluir</AlertDialogAction></DialogFooter></AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

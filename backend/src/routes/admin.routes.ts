@@ -67,4 +67,20 @@ adminRoutes.delete(
     jobController.delete
 );
 
+// Adicione esta rota junto com as outras rotas do admin
+adminRoutes.post(
+  '/companies',
+  authMiddleware.auth,
+  rbacMiddleware.checkRole(['admin', 'superadmin']),
+  adminController.createCompany
+);
+
+// Adicione junto com as outras rotas de usuários
+adminRoutes.put(
+  '/users/:id',
+  authMiddleware.auth,
+  rbacMiddleware.checkRole(['admin', 'superadmin']),
+  adminController.updateUser
+);
+
 export { adminRoutes };

@@ -1,18 +1,15 @@
-// Salve em: frontend/app/login/page.tsx
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Building, LogIn } from 'lucide-react';
+import { Building, LogIn, Loader2 } from 'lucide-react';
 import { Toaster, toast } from 'sonner';
-// --- IMPORTAÇÕES ADICIONADAS ---
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-// --- FIM DAS IMPORTAÇÕES ---
 
-const LOGIN_API_URL = 'http://localhost:5000/auth/login';
+const LOGIN_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,12 +19,10 @@ export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const router = useRouter();
 
-  // Redireciona para o dashboard se o usuário já estiver logado
-
   useEffect(() => {
     document.title = 'Login | Decola Vagas';
   }, []);
-  
+
   useEffect(() => {
     if (!loading && user) {
       router.push('/dashboard');
@@ -49,57 +44,11 @@ export default function LoginPage() {
       if (res.ok) {
         const data = await res.json();
         toast.success('Login realizado com sucesso!');
-
-        // Await login para pegar os dados do usuário
-        const userData = await login(data.access_token);
-
-        if (userData) {
-          // Lógica de redirecionamento movida para cá
-          const isGlobalAdmin = userData.institutions.some(
-            (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
-          );
-
-          if (isGlobalAdmin) {
-            router.push('/admin');
-            return;
-          }
-
-          // Se o usuário não for global admin, verificamos o cargo da instituição ativa
-          if (userData.activeInstitutionId) {
-            const activeInstitution = userData.institutions.find(
-              (inst: any) => inst.institutionId === userData.activeInstitutionId
-            );
-            const activeRole = activeInstitution?.role.name;
-
-            if (['professor', 'coordenador'].includes(activeRole)) {
-              router.push('/admin');
-            } else {
-              router.push('/dashboard');
-            }
-          } else {
-            // NOVO: Se não houver instituição ativa (primeiro login)
-            // Verificamos se ele é professor/coordenador em QUALQUER instituição
-            const isProfessorOrCoordenador = userData.institutions.some(
-              (inst: any) => ['professor', 'coordenador'].includes(inst.role.name)
-            );
-
-            if (isProfessorOrCoordenador) {
-              router.push('/admin'); // Redireciona para o admin para escolher a instituição
-            } else {
-              router.push('/dashboard'); // Caso contrário, vai para o dashboard normal
-            }
-          }
-        } else {
-          // Caso o login dê certo mas o fetch de profile falhe
-          const profileError = 'Falha ao carregar seu perfil. Tente novamente.';
-          setError(profileError);
-          toast.error(profileError);
-        }
-
+        await login(data.access_token);
+        router.push('/dashboard'); 
       } else {
         const data = await res.json();
-        const errorMessage =
-          data.error || 'Falha no login. Verifique seus dados.';
+        const errorMessage = data.error || 'Falha no login. Verifique seus dados.';
         setError(errorMessage);
         toast.error(errorMessage);
       }
@@ -113,128 +62,122 @@ export default function LoginPage() {
     }
   };
 
-  // Não renderiza a página de login se estiver carregando ou se o usuário estiver logado
   if (loading || user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <p className="text-neutral-600">Carregando...</p>
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
   return (
     <>
-      <Toaster richColors />
-      <div className="flex min-h-screen w-full bg-neutral-50">
-        {/* Lado Esquerdo (Branding) - COM GRADIENTE SUTIL */}
-        <div className="hidden min-h-screen w-1/2 flex-col justify-between bg-gradient-to-br from-neutral-900 to-gray-900 p-10 text-white lg:flex">
-          <Link href="/" className="flex items-center gap-2">
-            <Building className="h-6 w-6 text-blue-400" />
-            <span className="text-xl font-bold">Decola Vagas</span>
+      <Toaster richColors theme="dark" />
+      <div className="flex min-h-screen w-full bg-slate-950 text-slate-50 selection:bg-blue-600/30 selection:text-blue-100">
+        
+        {/* Lado Esquerdo (Branding) */}
+        <div className="hidden min-h-screen w-1/2 flex-col justify-between bg-slate-900 p-10 text-white lg:flex border-r border-white/5 relative overflow-hidden">
+          {/* Efeitos de Fundo */}
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-purple-600/10 rounded-full blur-[80px] pointer-events-none" />
+
+          <Link href="/" className="flex items-center gap-2 z-10 group w-fit">
+            <div className="p-1.5 rounded-lg bg-blue-600/10 group-hover:bg-blue-600/20 transition-colors">
+               <Building className="h-6 w-6 text-blue-500" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">Decola Vagas</span>
           </Link>
-          <div>
-            <h2 className="text-3xl font-bold leading-tight">
-              Sua jornada profissional começa aqui.
+          <div className="z-10 relative">
+            <h2 className="text-4xl font-bold leading-tight mb-4">
+              Sua jornada profissional <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">começa aqui.</span>
             </h2>
-            <p className="mt-4 text-lg text-neutral-400">
-              Acesse as melhores oportunidades da sua instituição.
+            <p className="text-lg text-slate-400 max-w-md">
+              Acesse as melhores oportunidades exclusivas da sua instituição de ensino.
             </p>
           </div>
-          <div className="text-sm text-neutral-500">
+          <div className="text-sm text-slate-500 z-10">
             &copy; {new Date().getFullYear()} Decola Vagas
           </div>
         </div>
 
         {/* Lado Direito (Formulário) */}
-        <div className="flex w-full items-center justify-center p-8 lg:w-1/2">
-          <div className="w-full max-w-md">
+        <div className="flex w-full items-center justify-center p-8 lg:w-1/2 relative">
+           {/* Efeito de Fundo Mobile */}
+           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-md bg-blue-600/5 blur-[100px] pointer-events-none lg:hidden" />
+
+          <div className="w-full max-w-md relative z-10">
             <Link
               href="/"
-              className="mb-8 flex items-center justify-center gap-2 lg:hidden"
+              className="mb-8 flex items-center justify-center gap-2 lg:hidden group"
             >
-              <Building className="h-7 w-7 text-blue-600" />
-              <span className="text-2xl font-bold text-neutral-900">
-                Decola Vagas
-              </span>
+              <div className="p-1.5 rounded-lg bg-blue-600/10 group-hover:bg-blue-600/20 transition-colors">
+                <Building className="h-6 w-6 text-blue-500" />
+              </div>
+              <span className="text-2xl font-bold text-white">Decola Vagas</span>
             </Link>
 
-            <h1 className="mb-2 text-center text-3xl font-bold text-neutral-900 lg:text-left">
-              Entrar na sua conta
-            </h1>
-            <p className="mb-6 text-center text-neutral-600 lg:text-left">
-              Bem-vindo de volta!
-            </p>
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-white text-center lg:text-left mb-2">
+                Entrar na sua conta
+              </h1>
+              <p className="text-slate-400 text-center lg:text-left">
+                Bem-vindo de volta! Digite seus dados para continuar.
+              </p>
+            </div>
 
-            {/* --- FORMULÁRIO ATUALIZADO --- */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-neutral-700 mb-1"
-                >
-                  Email
-                </label>
-                {/* --- SUBSTITUÍDO POR COMPONENT UI --- */}
-                <Input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                  required
+                <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                <Input 
+                    type="email" 
+                    id="email" 
+                    value={email} 
+                    onChange={(e) => setEmail(e.target.value)} 
+                    placeholder="seu@email.com" 
+                    required 
+                    className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-400 focus-visible:ring-blue-500 focus:bg-slate-800 transition-colors h-11"
                 />
               </div>
               <div>
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-neutral-700 mb-1"
-                >
-                  Senha
-                </label>
-                {/* --- SUBSTITUÍDO POR COMPONENT UI --- */}
-                <Input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
+                <div className="flex justify-between items-center mb-1.5">
+                    <label htmlFor="password" className="block text-sm font-medium text-slate-300">Senha</label>
+                    <Link href="/forgot-password" className="text-sm font-medium text-blue-400 hover:text-blue-300 hover:underline transition-colors">
+                      Esqueceu sua senha?
+                    </Link>
+                </div>
+                <Input 
+                    type="password" 
+                    id="password" 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    placeholder="••••••••" 
+                    required 
+                    className="bg-slate-900 border-slate-700 text-white placeholder:text-slate-400 focus-visible:ring-blue-500 focus:bg-slate-800 transition-colors h-11"
                 />
               </div>
 
               {error && (
-                <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-                  {error}
-                </p>
+                <div className="rounded-lg bg-red-500/10 p-3 border border-red-500/20">
+                    <p className="text-sm text-red-400 text-center">{error}</p>
+                </div>
               )}
 
               <div>
-                {/* --- SUBSTITUÍDO POR COMPONENT UI --- */}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full gap-2"
-                  size="lg"
-                >
+                <Button type="submit" disabled={isLoading} className="w-full gap-2 bg-blue-600 hover:bg-blue-500 text-white font-medium h-11 text-base shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all">
                   {isLoading ? (
-                    'Entrando...'
+                      <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <>
                       <LogIn className="h-5 w-5" />
-                      Entrar
-                    </>
                   )}
+                  {isLoading ? 'Entrando...' : 'Entrar'}
                 </Button>
               </div>
             </form>
-            {/* --- FIM DO FORMULÁRIO ATUALIZADO --- */}
 
-            <p className="mt-8 text-center text-sm text-neutral-600">
+            <p className="mt-8 text-center text-sm text-slate-400">
               Não tem uma conta?{' '}
-              <Link
-                href="/register"
-                className="font-semibold text-blue-600 hover:underline"
-              >
+              <Link href="/register" className="font-semibold text-blue-400 hover:text-blue-300 hover:underline transition-colors">
                 Cadastre-se
               </Link>
             </p>

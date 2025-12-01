@@ -10,7 +10,7 @@ const rbacMiddleware = new RbacMiddleware();
 
 institutionRoutes.get(
     '/public',
-    institutionController.getAll
+    institutionController.getPublic
 );
 institutionRoutes.post(
     '/',

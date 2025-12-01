@@ -33,7 +33,20 @@ export class InstitutionController {
 
     async getAll(req: Request, res: Response) {
         try {
-            const institutions = await prisma.institution.findMany();
+            // Pega o parâmetro 'type' da URL (ex: ?type=company)
+            const { type } = req.query;
+
+            // Monta o filtro dinamicamente
+            const whereClause: any = {};
+            if (type) {
+                whereClause.type = String(type);
+            }
+
+            const institutions = await prisma.institution.findMany({
+                where: whereClause,
+                orderBy: { name: 'asc' } // Opcional: ordenar por nome
+            });
+            
             res.status(200).json(institutions);
         } catch (error) {
             console.error('Erro ao buscar instituições:', error);
@@ -111,6 +124,22 @@ export class InstitutionController {
                  return res.status(404).json({ error: 'Instituição não encontrada para exclusão' });
             }
             console.error('Erro ao excluir instituição:', error);
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+
+    async getPublic(req: Request, res: Response) {
+        try {
+            // Busca apenas instituições que NÃO são do tipo 'company'
+            // O padrão é 'university', então buscamos tudo que for 'university' ou nulo (para legado)
+            const institutions = await prisma.institution.findMany({
+                where: {
+                    type: 'university'
+                }
+            });
+            res.status(200).json(institutions);
+        } catch (error) {
+            console.error('Erro ao buscar instituições públicas:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
         }
     }

@@ -3,27 +3,26 @@
 import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Define a interface para os dados do usuário
-// Define a interface para os dados do usuário
+// Interface atualizada do Usuário
 interface User {
   userId: number;
   firstName: string;
   lastName: string;
   email: string;
-  institutions: any[]; // Defina uma interface mais específica se necessário
+  institutions: any[]; 
   activeInstitutionId: number | null;
-  role: { name: string };
-  // --- ADICIONE ESTAS LINHAS ---
+  avatarUrl?: string | null;
+  resumeUrl?: string | null; // ADICIONADO: Campo de currículo
   bio?: string | null;
   linkedinUrl?: string | null;
   githubUrl?: string | null;
   portfolioUrl?: string | null;
   course?: string | null;
   graduationYear?: number | null;
-  // --- FIM DA ADIÇÃO ---
+  // Helper property para facilitar acesso
+  role?: { name: string }; 
 }
 
-// Define a interface para o contexto de autenticação
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -33,12 +32,12 @@ interface AuthContextType {
   logout: () => void;
   fetchUserProfile: () => Promise<void>;
   setActiveInstitutionId: (id: number | null) => void;
+  // Helper para pegar a role ativa com segurança
+  getActiveRole: () => string | null;
 }
 
-// Cria o contexto com um valor padrão
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hook customizado para usar o contexto de autenticação
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -47,7 +46,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Componente Provedor do Contexto
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -72,9 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setLoading(true);
+    // setLoading(true); // Removido para evitar flash de loading em atualizações de background
     try {
-      const res = await fetch('http://localhost:5000/auth/profile', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${storedToken}`,
         },
@@ -82,6 +80,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (res.ok) {
         const userData = await res.json();
+        
+        // Lógica para popular userData.role baseado na instituição ativa
+        const activeInst = userData.institutions.find((i: any) => i.institutionId === userData.activeInstitutionId);
+        if (activeInst) {
+            userData.role = activeInst.role;
+        } else if (userData.institutions.length > 0) {
+             userData.role = userData.institutions[0].role;
+        }
+
         setUser(userData);
         setActiveInstitutionId(userData.activeInstitutionId);
       } else {
@@ -104,30 +111,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (newToken: string): Promise<User | null> => {
     localStorage.setItem('access_token', newToken);
     setToken(newToken);
-
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:5000/auth/profile', {
-        headers: {
-          'Authorization': `Bearer ${newToken}`,
-        },
-      });
-
-      if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
-        setActiveInstitutionId(userData.activeInstitutionId);
-        return userData;
-      } else {
-        logout();
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile after login:', error);
-      logout();
-    } finally {
-      setLoading(false);
-    }
-    return null;
+    // O useEffect acima chamará fetchUserProfile automaticamente
+    return null; 
   };
 
   const logout = () => {
@@ -135,7 +120,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setToken(null);
     setActiveInstitutionId(null);
-    router.push('/login');
+    router.push('/');
+  };
+
+  const getActiveRole = () => {
+    if (!user) return null;
+    
+    // 1. Tenta pegar da propriedade role populada no fetch
+    if (user.role?.name) return user.role.name;
+
+    // 2. Tenta encontrar na lista de instituições
+    const activeInst = user.institutions.find((i: any) => i.institutionId === user.activeInstitutionId);
+    if (activeInst) return activeInst.role.name;
+
+    // 3. Fallback para superadmin se existir em qualquer vínculo
+    if (user.institutions.some((i:any) => i.role.name === 'superadmin')) return 'superadmin';
+
+    return null;
   };
 
   const value = {
@@ -147,6 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     fetchUserProfile,
     setActiveInstitutionId,
+    getActiveRole
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

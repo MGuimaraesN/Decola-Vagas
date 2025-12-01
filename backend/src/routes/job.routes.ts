@@ -43,8 +43,28 @@ jobRoutes.get(
 );
 jobRoutes.get(
     '/:id',
-    authMiddleware.auth,
+    authMiddleware.optionalAuth,
     jobController.getById
 );
+
+// --- NOVAS ROTAS ---
+jobRoutes.get(
+    '/:id/candidates', 
+    authMiddleware.auth, 
+    jobController.getCandidates
+);
+// Alterar status da candidatura
+jobRoutes.patch(
+    '/application/:applicationId/status',
+    authMiddleware.auth,
+    jobController.updateApplicationStatus
+);
+
+jobRoutes.get(
+    '/:id',
+    authMiddleware.optionalAuth,
+    jobController.getById
+);
+
 
 export { jobRoutes };

@@ -1,189 +1,226 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { 
+  Users, Building, Briefcase, CheckCircle, Edit3, Loader2, 
+  ArrowUpRight, Plus, Search 
+} from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import Link from 'next/link';
 
-// Interfaces (ajustadas para o contexto de Vagas)
-interface Job {
-  id: number;
-  title: string;
-  status: string;
-  institution: { name: string };
-  author: { firstName: string; lastName: string };
-  createdAt: string;
+interface AdminStats {
+  type: 'global';
+  userCount: number;
+  institutionCount: number;
+  jobCount: number;
+}
+interface PersonalStats {
+    type: 'personal';
+    totalMyJobs: number;
+    publishedMyJobs: number;
+    draftMyJobs: number;
+}
+type Stats = AdminStats | PersonalStats | null;
+
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
+
+function StatCard({ title, value, icon: Icon, colorClass, trend }: any) {
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-100 hover:shadow-md transition-all duration-200">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium text-neutral-500 mb-1">{title}</p>
+          <h3 className="text-3xl font-bold text-neutral-900 tracking-tight">{value}</h3>
+        </div>
+        <div className={`p-3 rounded-lg ${colorClass} bg-opacity-10`}>
+          <Icon className={`h-6 w-6 ${colorClass}`} />
+        </div>
+      </div>
+      {trend && (
+        <div className="mt-4 flex items-center text-xs text-green-600 font-medium">
+          <ArrowUpRight className="h-3 w-3 mr-1" />
+          {trend} este mês
+        </div>
+      )}
+    </div>
+  );
 }
 
-const API_URL = 'http://localhost:5000/admin/jobs';
-
-export default function AdminJobsPage() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<Stats>(null);
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const { token } = useAuth();
-  const router = useRouter();
-
-  const fetchData = async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const res = await fetch(API_URL, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setJobs(data);
-      } else {
-        toast.error('Falha ao buscar vagas.');
-      }
-    } catch (error) {
-      toast.error('Erro de rede ao buscar vagas.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { token, user, getActiveRole } = useAuth(); // CORREÇÃO: Usar getActiveRole
 
   useEffect(() => {
-    document.title = 'Admin: Vagas | Decola Vagas';
+    document.title = 'Admin: Dashboard | Decola Vagas';
   }, []);
-
+  
   useEffect(() => {
-    fetchData();
-  }, [token]);
-
-  const openAlertDialog = (job: Job) => {
-    setJobToDelete(job);
-    setIsAlertDialogOpen(true);
-  };
-
-  const closeAlertDialog = () => {
-    setJobToDelete(null);
-    setIsAlertDialogOpen(false);
-  };
-
-  const handleEdit = (jobId: number) => {
-    // ALTERAÇÃO AQUI: Redireciona para a nova página de edição do admin
-    router.push(`/admin/jobs/edit/${jobId}`);
-  };
-
-  const handleDelete = async () => {
-    if (!token || !jobToDelete) return;
-
-    try {
-      const res = await fetch(`${API_URL}/${jobToDelete.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok || res.status === 204) {
-        toast.success('Vaga excluída com sucesso!');
-        closeAlertDialog();
-        fetchData(); // Re-fetch
-      } else {
-        toast.error('Falha ao excluir vaga.');
+    const fetchData = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    } catch (error) {
-      toast.error('Erro de rede ao excluir vaga.');
-    }
-  };
+      setIsLoading(true);
+      try {
+        // Busca stats
+        const statsRes = await fetch(`${API_BASE_URL}/admin/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        
+        // CORREÇÃO: Determinar URL baseada na role segura
+        const role = getActiveRole();
+        const jobsUrl = role === 'superadmin' || role === 'admin' 
+            ? `${API_BASE_URL}/admin/jobs` 
+            : `${API_BASE_URL}/jobs/my-institution`;
+
+        const jobsRes = await fetch(jobsUrl, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (statsRes.ok) setStats(await statsRes.json());
+        if (jobsRes.ok) {
+            const jobsData = await jobsRes.json();
+            const list = Array.isArray(jobsData) ? jobsData : (jobsData.data || []);
+            setRecentJobs(list.slice(0, 5));
+        }
+
+      } catch (error) {
+        toast.error('Erro de rede ao carregar dashboard.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token, user]); // Mantido user na dependência para recarregar se login mudar
 
   if (isLoading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
   }
 
+  if (!stats) return <div className="text-red-500 p-6">Não foi possível carregar os dados.</div>;
+
   return (
-    // Div container removida para preencher o layout
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gerenciamento de Todas as Vagas</h1>
-        {/* ALTERAÇÃO AQUI: Link aponta para a nova página de criação do admin */}
-        <Button asChild>
-          <Link href="/admin/jobs/new">Criar Nova Vaga</Link>
-        </Button>
-      </div>
-      {/* Card padronizado em volta da tabela */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Título</TableHead>
-              <TableHead>Instituição</TableHead>
-              <TableHead>Autor</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {jobs.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell>{job.title}</TableCell>
-                <TableCell>{job.institution.name}</TableCell>
-                <TableCell>{`${job.author.firstName} ${job.author.lastName}`}</TableCell>
-                <TableCell>
-                    <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          job.status === 'published' || job.status === 'open'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {job.status}
-                    </span>
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(job.id)}>
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(job)}>
-                    Excluir
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <div className="space-y-8">
+      {/* Cabeçalho da Página */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+            Visão Geral
+            </h1>
+            <p className="text-neutral-500 mt-1">Acompanhe as métricas e atividades recentes.</p>
+        </div>
+        <div className="flex gap-3">
+            <Button variant="outline" asChild>
+                <Link href="/admin/jobs">
+                    <Search className="mr-2 h-4 w-4" /> Buscar Vagas
+                </Link>
+            </Button>
+            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link href="/admin/jobs/new">
+                    <Plus className="mr-2 h-4 w-4" /> Nova Vaga
+                </Link>
+            </Button>
+        </div>
       </div>
 
-      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a vaga "{jobToDelete?.title}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      {/* Cards de Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {stats.type === 'global' ? (
+          <>
+            <StatCard title="Usuários Totais" value={stats.userCount} icon={Users} colorClass="text-blue-600" trend="+12%" />
+            <StatCard title="Instituições" value={stats.institutionCount} icon={Building} colorClass="text-purple-600" />
+            <StatCard title="Total de Vagas" value={stats.jobCount} icon={Briefcase} colorClass="text-green-600" trend="+5%" />
+          </>
+        ) : (
+          <>
+            <StatCard title="Minhas Vagas" value={stats.totalMyJobs} icon={Briefcase} colorClass="text-blue-600" />
+            <StatCard title="Publicadas" value={stats.publishedMyJobs} icon={CheckCircle} colorClass="text-green-600" />
+            <StatCard title="Rascunhos" value={stats.draftMyJobs} icon={Edit3} colorClass="text-amber-600" />
+          </>
+        )}
+      </div>
+
+      {/* Seção Inferior: Vagas Recentes */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Tabela ocupa 2/3 */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-neutral-100 overflow-hidden">
+            <div className="p-6 border-b border-neutral-100 flex justify-between items-center">
+                <h3 className="font-bold text-lg text-neutral-800">Vagas Recentes</h3>
+                <Link href="/admin/jobs" className="text-sm text-blue-600 hover:underline">Ver todas</Link>
+            </div>
+            <Table>
+                <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                        <TableHead>Título</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {recentJobs.length > 0 ? (
+                        recentJobs.map((job) => (
+                            <TableRow key={job.id} className="hover:bg-neutral-50/50">
+                                <TableCell className="font-medium">{job.title}</TableCell>
+                                <TableCell className="text-neutral-500 text-xs">
+                                    {new Date(job.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                        job.status === 'published' || job.status === 'open' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                        {job.status === 'published' ? 'Publicado' : 'Rascunho'}
+                                    </span>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={3} className="text-center py-8 text-neutral-500">
+                                Nenhuma atividade recente.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </div>
+
+        {/* Sidebar de Ações ou Avisos (1/3) */}
+        <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100 h-fit">
+            <h3 className="font-bold text-blue-900 mb-2">Dica Rápida</h3>
+            <p className="text-sm text-blue-800/80 mb-6">
+                Mantenha as descrições das vagas detalhadas para atrair os melhores candidatos. Vagas com salário visível recebem 40% mais cliques.
+            </p>
+            
+            <h3 className="font-bold text-neutral-900 mb-3 border-t border-blue-200 pt-4">Atalhos</h3>
+            <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start bg-white hover:bg-blue-50" asChild>
+                    <Link href="/admin/companies">Gerenciar Empresas</Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start bg-white hover:bg-blue-50" asChild>
+                    <Link href="/admin/institutions">Gerenciar Instituições</Link>
+                </Button>
+                {stats?.type === 'global' && (
+                    <Button variant="outline" className="w-full justify-start bg-white hover:bg-blue-50" asChild>
+                        <Link href="/admin/users">Gerenciar Usuários</Link>
+                    </Button>
+                )}
+            </div>
+        </div>
+      </div>
+    </div>
   );
 }
