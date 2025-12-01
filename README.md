@@ -17,7 +17,7 @@
 
 ---
 
-## 📋 Sobre o Projeto {#sobre}
+## 📋 Sobre o Projeto
 
 O **Decola Vagas** é uma plataforma full‑stack criada para resolver a fragmentação de oportunidades no meio acadêmico. Ela centraliza **estágios, IC, emprego e trainee** em um único ambiente, conectando diretamente alunos, docentes, coordenações e empresas.
 
@@ -39,7 +39,7 @@ Diferente de murais físicos e grupos desorganizados, o Decola Vagas oferece:
 
 ---
 
-## ✨ Funcionalidades {#funcionalidades}
+## ✨ Funcionalidades
 
 O sistema utiliza **RBAC (Role‑Based Access Control)** permitindo diferentes acessos conforme o perfil do usuário.
 
@@ -67,7 +67,7 @@ O sistema utiliza **RBAC (Role‑Based Access Control)** permitindo diferentes a
 
 ---
 
-## 🛠️ Tecnologias Utilizadas {#tecnologias}
+## 🛠️ Tecnologias Utilizadas
 
 ### **Monorepo**
 
@@ -101,7 +101,7 @@ Organização unificada com tipagem consistente.
 
 ---
 
-## 🚀 Como Executar {#como-executar}
+## 🚀 Como Executar
 
 ### **Pré‑requisitos**
 
@@ -199,7 +199,7 @@ Contribuições são bem‑vindas!
 
 ---
 
-## 📄 Licença {#licenca}
+## 📄 Licença
 
 Este projeto está sob a licença **MIT**.
 
