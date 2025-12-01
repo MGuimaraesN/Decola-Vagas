@@ -15,9 +15,9 @@ import {
   LayoutDashboard,
   Briefcase,
   Building2,
-  Inbox
+  Inbox,
+  Loader2 // Importar Loader2
 } from 'lucide-react';
-// IMPORTAÇÃO CORRETA
 import { Breadcrumbs, BreadcrumbProvider } from '@/components/ui/breadcrumbs';
 
 const allAdminLinks: NavLink[] = [
@@ -57,7 +57,13 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
     }
   }, [user, loading, router]);
 
-  if (loading || !user) return <div className="flex h-screen items-center justify-center bg-neutral-50">Carregando...</div>;
+  // --- Loader Atualizado ---
+  if (loading || !user) return (
+    <div className="flex h-screen items-center justify-center bg-neutral-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+    </div>
+  );
+  // -------------------------
 
   const isGlobalAdminCheck = user.institutions.some((inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin');
   const activeInstitutionCheck = user.institutions.find((inst: any) => inst.institution.id === user.activeInstitutionId);
@@ -65,12 +71,18 @@ const AdminAuthGuard = ({ children }: { children: ReactNode }) => {
   const hasPermission = isGlobalAdminCheck || (activeRoleCheck && ['professor', 'coordenador', 'empresa'].includes(activeRoleCheck));
 
   if (hasPermission) return <>{children}</>;
-  return <div className="flex h-screen items-center justify-center bg-neutral-50">Redirecionando...</div>;
+  
+  return (
+    <div className="flex h-screen items-center justify-center bg-neutral-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+    </div>
+  );
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   let viewRole: string | undefined;
+  // (Lógica de role mantida...)
   const isSuperAdmin = user?.institutions.some((inst: any) => inst.role.name === 'superadmin');
   const isAdmin = user?.institutions.some((inst: any) => inst.role.name === 'admin');
 
@@ -85,7 +97,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <AdminAuthGuard>
-      {/* O PROVIDER DEVE ESTAR AQUI ENVOLVENDO TUDO */}
       <BreadcrumbProvider>
         <div className="flex min-h-screen w-full bg-white">
           <AdminSidebar navLinks={filteredLinks} />

@@ -31,6 +31,7 @@ import {
   MapPin,
   Clock,
   Search,
+  Mail // Adicionado ícone de Email para feedback visual
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast, Toaster } from 'sonner';
@@ -141,9 +142,6 @@ export default function LandingPage() {
     fetchFilterData();
   }, []);
 
-  // --- CORREÇÃO DO PISCA-PISCA ---
-  // Se estiver carregando o AuthContext OU se o usuário já estiver logado (redirecionando),
-  // mostramos apenas o Loader. Isso evita que a Landing Page apareça por milissegundos.
   if (loading || user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950">
@@ -387,7 +385,11 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // CORREÇÃO: Mudamos de boolean para string para saber QUAL ação está ocorrendo
+  const [loadingAction, setLoadingAction] = useState<'login' | 'forgot' | null>(null);
+  const isLoading = loadingAction !== null;
+
   const [isResetSent, setIsResetSent] = useState(false);
 
   const LOGIN_API_URL = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
@@ -408,7 +410,7 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
       return;
     }
 
-    setIsLoading(true);
+    setLoadingAction('forgot'); // Define que é a ação de "Esqueci a senha"
     setError(null);
 
     try {
@@ -432,13 +434,13 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
       console.error(err);
       toast.error('Erro de rede ao tentar recuperar senha.');
     } finally {
-      setIsLoading(false);
+      setLoadingAction(null);
     }
   };
 
   const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoadingAction('login'); // Define que é a ação de "Login"
     setError(null);
 
     try {
@@ -454,11 +456,6 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
 
         await login(data.access_token);
         
-        // CORREÇÃO DA PISCADA:
-        // Não fechamos o modal (onClose) aqui.
-        // Apenas forçamos o redirecionamento e deixamos o modal visível
-        // com o estado de loading até que a página seja desmontada/redirecionada.
-        
         router.push('/dashboard'); 
         
       } else {
@@ -466,14 +463,14 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
         const errorMessage = data.error || 'Falha no login. Verifique seus dados.';
         setError(errorMessage);
         toast.error(errorMessage);
-        setIsLoading(false); // Só para o loading se houver erro
+        setLoadingAction(null);
       }
     } catch (error) {
       console.error(error);
       const networkError = 'Erro de rede. Não foi possível conectar ao servidor.';
       setError(networkError);
       toast.error(networkError);
-      setIsLoading(false); // Só para o loading se houver erro
+      setLoadingAction(null);
     }
   };
 
@@ -482,6 +479,14 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
     setError(null);
     setEmail('');
     setPassword('');
+    setLoadingAction(null);
+  };
+
+  // Helper para o texto do botão
+  const getButtonText = () => {
+    if (loadingAction === 'forgot') return 'Enviando link...';
+    if (loadingAction === 'login') return 'Entrando...';
+    return 'Entrar';
   };
 
   return (
@@ -582,10 +587,12 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
                 >
                   {isLoading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : loadingAction === 'forgot' ? (
+                    <Mail className="h-5 w-5" /> 
                   ) : (
                     <LogIn className="h-5 w-5" />
                   )}
-                  {isLoading ? 'Entrando...' : 'Entrar'}
+                  {getButtonText()}
                 </Button>
               </div>
             </form>
@@ -607,7 +614,9 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
   );
 }
 
-// Componente Card de Vaga
+// ... (Restante do arquivo permanece inalterado) ...
+// Componente JobCard e FeatureCard continuam aqui embaixo...
+// ...
 function JobCard({ job }: { job: Job }) {
   const timeAgo = (date: string) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);

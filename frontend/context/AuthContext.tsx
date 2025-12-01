@@ -12,14 +12,13 @@ interface User {
   institutions: any[]; 
   activeInstitutionId: number | null;
   avatarUrl?: string | null;
-  resumeUrl?: string | null; // ADICIONADO: Campo de currículo
+  resumeUrl?: string | null;
   bio?: string | null;
   linkedinUrl?: string | null;
   githubUrl?: string | null;
   portfolioUrl?: string | null;
   course?: string | null;
   graduationYear?: number | null;
-  // Helper property para facilitar acesso
   role?: { name: string }; 
 }
 
@@ -32,7 +31,6 @@ interface AuthContextType {
   logout: () => void;
   fetchUserProfile: () => Promise<void>;
   setActiveInstitutionId: (id: number | null) => void;
-  // Helper para pegar a role ativa com segurança
   getActiveRole: () => string | null;
 }
 
@@ -70,7 +68,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // setLoading(true); // Removido para evitar flash de loading em atualizações de background
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/profile`, {
         headers: {
@@ -81,7 +78,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (res.ok) {
         const userData = await res.json();
         
-        // Lógica para popular userData.role baseado na instituição ativa
         const activeInst = userData.institutions.find((i: any) => i.institutionId === userData.activeInstitutionId);
         if (activeInst) {
             userData.role = activeInst.role;
@@ -109,33 +105,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [token]);
 
   const login = async (newToken: string): Promise<User | null> => {
+    setLoading(true); 
     localStorage.setItem('access_token', newToken);
     setToken(newToken);
-    // O useEffect acima chamará fetchUserProfile automaticamente
     return null; 
   };
 
   const logout = () => {
+    // 1. Ativa o loading para mostrar o spinner imediatamente
+    setLoading(true);
+    
+    // 2. Limpa os dados
     localStorage.removeItem('access_token');
     setUser(null);
     setToken(null);
     setActiveInstitutionId(null);
+    
+    // 3. Redireciona
     router.push('/');
+
+    // 4. Desativa o loading após um breve delay para garantir que a transição de página ocorra suavemente
+    // sem "piscar" a tela de login antes da hora.
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
   };
 
   const getActiveRole = () => {
     if (!user) return null;
-    
-    // 1. Tenta pegar da propriedade role populada no fetch
     if (user.role?.name) return user.role.name;
-
-    // 2. Tenta encontrar na lista de instituições
     const activeInst = user.institutions.find((i: any) => i.institutionId === user.activeInstitutionId);
     if (activeInst) return activeInst.role.name;
-
-    // 3. Fallback para superadmin se existir em qualquer vínculo
     if (user.institutions.some((i:any) => i.role.name === 'superadmin')) return 'superadmin';
-
     return null;
   };
 
