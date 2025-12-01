@@ -33,8 +33,8 @@ Diferente de murais físicos e grupos desorganizados, o Decola Vagas oferece:
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="https://via.placeholder.com/800x400?text=Dashboard+do+Aluno" alt="Dashboard Preview" />
-  <img src="https://via.placeholder.com/800x400?text=Painel+Administrativo" alt="Admin Preview" />
+  <img src="./images/dashboard.png" alt="Dashboard Preview" />
+  <img src="./images/admin_dashboard.png" alt="Admin Preview" />
 </div>
 
 ---
