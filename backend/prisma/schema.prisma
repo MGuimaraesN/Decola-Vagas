@@ -49,7 +49,7 @@ model Job {
   title         String
   email         String
   telephone     String
-  description   String
+  description   String       @db.Text
   areaId        Int
   area          Area          @relation(fields: [areaId], references: [id])
   categoryId    Int
