@@ -68,10 +68,17 @@ export default function LandingPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Hooks para o modal
+<<<<<<< Updated upstream
 const { login, user, loading } = useAuth();
   const router = useRouter();
 
 // --- REDIRECIONAMENTO INSTANTÂNEO ---
+=======
+  const { login, user, loading } = useAuth();
+  const router = useRouter();
+
+  // --- REDIRECIONAMENTO INSTANTÂNEO ---
+>>>>>>> Stashed changes
   useEffect(() => {
     // Verifica o localStorage diretamente para evitar esperar a validação da API
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -79,7 +86,11 @@ const { login, user, loading } = useAuth();
     if (token || user) {
       router.push('/dashboard');
     }
+<<<<<<< Updated upstream
   }, [user, router]); // Array com 2 dependências (user e router)
+=======
+  }, [user, router]);
+>>>>>>> Stashed changes
 
   // --- Lógica de Busca ---
 
@@ -140,6 +151,17 @@ const { login, user, loading } = useAuth();
     };
     fetchFilterData();
   }, []);
+
+  // --- CORREÇÃO DO PISCA-PISCA ---
+  // Se estiver carregando o AuthContext OU se o usuário já estiver logado (redirecionando),
+  // mostramos apenas o Loader. Isso evita que a Landing Page apareça por milissegundos.
+  if (loading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-slate-50 selection:bg-blue-600/30 selection:text-blue-100 font-sans">
@@ -216,6 +238,69 @@ const { login, user, loading } = useAuth();
                 <p className="text-slate-400 max-w-2xl mx-auto">
                 Filtre as oportunidades abertas e encontre a ideal para o seu perfil.
                 </p>
+<<<<<<< Updated upstream
+=======
+            </div>
+
+            {/* --- ÁREA DE FILTROS --- */}
+            <div className="mb-12 p-1.5 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl max-w-4xl mx-auto">
+              <div className="flex flex-col md:flex-row gap-2 items-center">
+                
+                {/* Input de Busca */}
+                <div className="relative flex-1 w-full">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+                        <Search className="h-5 w-5" />
+                    </div>
+                    <Input
+                        placeholder="Buscar por título..."
+                        value={filters.search}
+                        onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                        className="w-full bg-transparent border-0 text-white placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 h-12 pl-10"
+                    />
+                </div>
+
+                <div className="h-8 w-px bg-slate-800 hidden md:block" />
+
+                {/* Select Área */}
+                <div className="w-full md:w-[240px]">
+                    <Select value={filters.areaId} onValueChange={(value) =>
+                        setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
+                        <SelectTrigger className="w-full bg-transparent border-0 text-slate-300 focus:ring-0 focus:ring-offset-0 h-12 hover:bg-white/5 transition-colors">
+                            <SelectValue placeholder="Todas as Áreas" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                            <SelectItem value="all" className="focus:bg-slate-800 focus:text-white cursor-pointer">Todas as Áreas</SelectItem>
+                            {areas.map(area => (
+                                <SelectItem key={area.id} value={String(area.id)} className="focus:bg-slate-800 focus:text-white cursor-pointer">
+                                    {area.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="h-8 w-px bg-slate-800 hidden md:block" />
+
+                {/* Select Categoria */}
+                <div className="w-full md:w-[240px]">
+                    <Select value={filters.categoryId} onValueChange={(value) =>
+                        setFilters(prev => ({ ...prev, categoryId: value === 'all' ? '' : value }))}>
+                        <SelectTrigger className="w-full bg-transparent border-0 text-slate-300 focus:ring-0 focus:ring-offset-0 h-12 hover:bg-white/5 transition-colors">
+                            <SelectValue placeholder="Todas as Categorias" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-800 text-slate-200">
+                            <SelectItem value="all" className="focus:bg-slate-800 focus:text-white cursor-pointer">Todas as Categorias</SelectItem>
+                            {categories.map(cat => (
+                                <SelectItem key={cat.id} value={String(cat.id)} className="focus:bg-slate-800 focus:text-white cursor-pointer">
+                                    {cat.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+              </div>
+>>>>>>> Stashed changes
             </div>
 
             {/* --- ÁREA DE FILTROS (Visual Coeso e Legível) --- */}
@@ -441,61 +526,30 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
 
       if (res.ok) {
         const data = await res.json();
-        toast.success('Login realizado com sucesso!');
+        toast.success('Login realizado! Redirecionando...');
 
-        const userData = await login(data.access_token);
-        onClose();
-
-        if (userData) {
-          const isGlobalAdmin = userData.institutions.some(
-            (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
-          );
-
-          if (isGlobalAdmin) {
-            router.push('/admin');
-            return;
-          }
-
-          if (userData.activeInstitutionId) {
-            const activeInstitution = userData.institutions.find(
-              (inst: any) => inst.institution.id === userData.activeInstitutionId
-            );
-            const activeRole = activeInstitution?.role.name;
-
-            if (activeRole && ['professor', 'coordenador'].includes(activeRole)) {
-              router.push('/admin');
-            } else {
-              router.push('/dashboard');
-            }
-          } else {
-            const isProfessorOrCoordenador = userData.institutions.some(
-              (inst: any) => ['professor', 'coordenador'].includes(inst.role.name)
-            );
-
-            if (isProfessorOrCoordenador) {
-              router.push('/admin');
-            } else {
-              router.push('/dashboard');
-            }
-          }
-        } else {
-          toast.error("Não foi possível carregar seu perfil. Redirecionando...");
-          router.push('/dashboard'); 
-        }
-
+        await login(data.access_token);
+        
+        // CORREÇÃO DA PISCADA:
+        // Não fechamos o modal (onClose) aqui.
+        // Apenas forçamos o redirecionamento e deixamos o modal visível
+        // com o estado de loading até que a página seja desmontada/redirecionada.
+        
+        router.push('/dashboard'); 
+        
       } else {
         const data = await res.json();
         const errorMessage = data.error || 'Falha no login. Verifique seus dados.';
         setError(errorMessage);
         toast.error(errorMessage);
+        setIsLoading(false); // Só para o loading se houver erro
       }
     } catch (error) {
       console.error(error);
       const networkError = 'Erro de rede. Não foi possível conectar ao servidor.';
       setError(networkError);
       toast.error(networkError);
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Só para o loading se houver erro
     }
   };
 
@@ -564,7 +618,10 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
                   placeholder="seu@email.com"
                   required
                   disabled={isLoading}
+<<<<<<< Updated upstream
                   // UPDATE: bg-slate-900, border-slate-700, placeholder:text-slate-400, focus:bg-slate-800
+=======
+>>>>>>> Stashed changes
                   className="bg-slate-900 border-slate-700 text-white focus-visible:ring-blue-500 placeholder:text-slate-400 h-11 focus:bg-slate-800 transition-colors"
                 />
               </div>
@@ -594,7 +651,10 @@ function LoginModal({ isOpen, onClose, login, router }: LoginModalProps) {
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
+<<<<<<< Updated upstream
                   // UPDATE: bg-slate-900, border-slate-700, placeholder:text-slate-400, focus:bg-slate-800
+=======
+>>>>>>> Stashed changes
                   className="bg-slate-900 border-slate-700 text-white focus-visible:ring-blue-500 placeholder:text-slate-400 h-11 focus:bg-slate-800 transition-colors"
                 />
               </div>
@@ -651,7 +711,10 @@ function JobCard({ job }: { job: Job }) {
   };
 
   return (
+<<<<<<< Updated upstream
     // Usando bg-[#18181b] para um tom ligeiramente mais claro que o fundo principal
+=======
+>>>>>>> Stashed changes
     <div className="group bg-[#18181b] p-6 rounded-xl border border-white/5 hover:border-blue-500/50 hover:bg-slate-900/80 hover:shadow-[0_0_20px_rgba(59,130,246,0.1)] transition-all duration-300 flex flex-col justify-between h-full">
       <div>
         <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-1 mb-3">

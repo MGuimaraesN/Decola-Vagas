@@ -17,7 +17,11 @@ import {
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
+<<<<<<< Updated upstream
 import { Plus, Search, Trash2, Settings, Pencil, Building, ShieldCheck, X } from 'lucide-react'; // Novos ícones importados
+=======
+import { Plus, Search, Trash2, Settings, Pencil, Building, ShieldCheck, X, Filter } from 'lucide-react';
+>>>>>>> Stashed changes
 
 // Interfaces
 interface Role { id: number; name: string; }
@@ -30,8 +34,16 @@ const API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}`;
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+<<<<<<< Updated upstream
   const [search, setSearch] = useState('');
   
+=======
+  
+  // Filtros
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all'); // NOVO: Estado do filtro
+
+>>>>>>> Stashed changes
   // Estados de Seleção
   const [selectedUserPermissions, setSelectedUserPermissions] = useState<User | null>(null);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
@@ -83,6 +95,7 @@ export default function UsersPage() {
     fetchData();
   }, [token]);
 
+<<<<<<< Updated upstream
   useEffect(() => {
     const lowerSearch = search.toLowerCase();
     setFilteredUsers(users.filter(u => 
@@ -94,6 +107,30 @@ export default function UsersPage() {
 
   // --- Handlers de Modal ---
 
+=======
+  // --- LÓGICA DE FILTRO ATUALIZADA ---
+  useEffect(() => {
+    const lowerSearch = search.toLowerCase();
+    
+    setFilteredUsers(users.filter(u => {
+        // 1. Filtro de Texto
+        const matchesSearch = 
+            u.firstName.toLowerCase().includes(lowerSearch) || 
+            u.lastName.toLowerCase().includes(lowerSearch) ||
+            u.email.toLowerCase().includes(lowerSearch);
+
+        // 2. Filtro de Cargo (Vínculo)
+        const matchesRole = roleFilter === 'all' 
+            ? true 
+            : u.institutions.some(inst => inst.role.name === roleFilter);
+
+        return matchesSearch && matchesRole;
+    }));
+  }, [search, roleFilter, users]);
+
+  // --- Handlers de Modal ---
+
+>>>>>>> Stashed changes
   const openCreateModal = () => {
     setUserToEdit(null);
     setUserForm({ firstName: '', lastName: '', email: '', password: '', institutionId: '', roleId: '' });
@@ -222,6 +259,7 @@ export default function UsersPage() {
         </Button>
       </div>
 
+<<<<<<< Updated upstream
       <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-neutral-200 shadow-sm max-w-md">
         <Search className="h-4 w-4 text-neutral-400 ml-2" />
         <Input 
@@ -230,6 +268,40 @@ export default function UsersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
         />
+=======
+      {/* --- ÁREA DE FILTROS --- */}
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
+        {/* Busca */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-400" />
+            <Input 
+                placeholder="Buscar por nome ou email..." 
+                className="pl-9 bg-neutral-50 border-neutral-200"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+            />
+        </div>
+
+        {/* Filtro de Cargo (Select) */}
+        <div className="w-full md:w-48">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-full h-9 rounded-md border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                    <div className="flex items-center gap-2">
+                        <Filter className="h-3.5 w-3.5 text-neutral-500" />
+                        <SelectValue placeholder="Filtrar por Vínculo" />
+                    </div>
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos os Vínculos</SelectItem>
+                    {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.name} className="capitalize">
+                            {role.name}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+>>>>>>> Stashed changes
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
@@ -357,7 +429,11 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+<<<<<<< Updated upstream
       {/* --- MODAL DE PERMISSÕES (MELHORADO) --- */}
+=======
+      {/* --- MODAL DE PERMISSÕES (CORRIGIDO) --- */}
+>>>>>>> Stashed changes
       <Dialog open={!!selectedUserPermissions} onOpenChange={(isOpen) => !isOpen && setSelectedUserPermissions(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -386,10 +462,17 @@ export default function UsersPage() {
                 ) : (
                     selectedUserPermissions?.institutions.map((instRole) => (
                         <div key={instRole.id} className="group flex justify-between items-center p-3 rounded-lg border border-neutral-100 bg-white hover:border-blue-100 hover:shadow-sm transition-all">
+<<<<<<< Updated upstream
                             <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-2 text-sm font-medium text-neutral-900">
                                     <Building className="h-3.5 w-3.5 text-neutral-400" />
                                     {instRole.institution.name}
+=======
+                            <div className="flex flex-col gap-1 w-full mr-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-neutral-900 break-words">
+                                    <Building className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+                                    <span className="truncate">{instRole.institution.name}</span>
+>>>>>>> Stashed changes
                                 </div>
                                 <div className="flex items-center gap-2 text-xs text-blue-600">
                                     <ShieldCheck className="h-3.5 w-3.5" />
@@ -400,7 +483,11 @@ export default function UsersPage() {
                                 variant="ghost" 
                                 size="sm" 
                                 onClick={() => handleRemoveRole(instRole.id)} 
+<<<<<<< Updated upstream
                                 className="text-neutral-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+=======
+                                className="text-neutral-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+>>>>>>> Stashed changes
                                 title="Remover permissão"
                             >
                                 <X className="h-4 w-4" />
@@ -411,6 +498,7 @@ export default function UsersPage() {
               </div>
             </div>
 
+<<<<<<< Updated upstream
             {/* Adicionar Novo Cargo */}
             <div className="space-y-3 bg-neutral-50 p-4 rounded-lg border border-neutral-100">
                 <h4 className="text-sm font-medium text-neutral-900 flex items-center gap-2">
@@ -432,6 +520,42 @@ export default function UsersPage() {
                         </Select>
                     </div>
                     <Button type="submit" disabled={!assignInstitutionId || !assignRoleId} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+=======
+            {/* Adicionar Novo Cargo (LAYOUT CORRIGIDO) */}
+            <div className="space-y-4 bg-neutral-50 p-4 rounded-lg border border-neutral-100">
+                <h4 className="text-sm font-medium text-neutral-900 flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-blue-600" /> Atribuir Novo Cargo
+                </h4>
+                <form onSubmit={handleAssignRole} className="flex flex-col gap-4">
+                    {/* Linha dos Selects em Grid responsivo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 pl-1">Instituição</label>
+                            <Select value={assignInstitutionId} onValueChange={setAssignInstitutionId}>
+                                <SelectTrigger className="bg-white w-full"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent className="max-h-[200px]">
+                                    {institutions.map(i => (
+                                        <SelectItem key={i.id} value={String(i.id)}>{i.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-neutral-500 pl-1">Cargo</label>
+                            <Select value={assignRoleId} onValueChange={setAssignRoleId}>
+                                <SelectTrigger className="bg-white w-full"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                                <SelectContent>
+                                    {roles.map(r => (
+                                        <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    
+                    {/* Botão abaixo */}
+                    <Button type="submit" disabled={!assignInstitutionId || !assignRoleId} className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm w-full sm:w-auto self-end">
+>>>>>>> Stashed changes
                         Adicionar
                     </Button>
                 </form>

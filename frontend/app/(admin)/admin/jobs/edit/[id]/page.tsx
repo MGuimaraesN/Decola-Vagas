@@ -9,6 +9,11 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { ChevronLeft, Loader2 } from 'lucide-react';
+<<<<<<< Updated upstream
+=======
+// IMPORTAÇÃO DO HOOK
+import { useBreadcrumb } from '@/components/ui/breadcrumbs';
+>>>>>>> Stashed changes
 
 interface Category { id: number; name: string; }
 interface Area { id: number; name: string; }
@@ -34,7 +39,10 @@ export default function AdminEditJobPage() {
   const { token, user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const { id } = params;
+  const { id } = params; // Ex: "4"
+  
+  // USO DO HOOK
+  const { setCustomLabel } = useBreadcrumb();
 
   const canEditInstitution = useMemo(() => {
     return user?.institutions.some((inst: any) => ['admin', 'superadmin'].includes(inst.role.name));
@@ -64,11 +72,23 @@ export default function AdminEditJobPage() {
           setAreaId(String(job.areaId)); setCategoryId(String(job.categoryId)); setCompanyName(job.companyName || '');
           setStatus(job.status);
           if (job.institutionId) setInstitutionId(String(job.institutionId));
+<<<<<<< Updated upstream
+=======
+          
+          // --- AQUI É ONDE O NOME É ENVIADO PARA O BREADCRUMB ---
+          // Diz ao breadcrumb: "Quando ver o segmento '4', mostre 'Desenvolvedor...'"
+          setCustomLabel(String(id), job.title);
+          
+>>>>>>> Stashed changes
         } else { toast.error('Vaga não encontrada.'); router.push('/admin/jobs'); }
       } catch (err) { toast.error('Erro de rede.'); } finally { setIsLoading(false); }
     };
     fetchData();
+<<<<<<< Updated upstream
   }, [token, id, canEditInstitution, router]);
+=======
+  }, [token, id, canEditInstitution, router, setCustomLabel]); 
+>>>>>>> Stashed changes
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -77,7 +97,16 @@ export default function AdminEditJobPage() {
     try {
       const body: any = { title, description, email, telephone, areaId: parseInt(areaId), categoryId: parseInt(categoryId), companyName, status, institutionId: canEditInstitution && institutionId ? parseInt(institutionId) : undefined };
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/edit/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(body) });
+<<<<<<< Updated upstream
       if (res.ok) { toast.success('Atualizado!'); router.push('/admin/jobs'); } else { toast.error('Erro ao atualizar.'); }
+=======
+      if (res.ok) { 
+          // Atualiza o breadcrumb se o título mudou ao salvar
+          setCustomLabel(String(id), title);
+          toast.success('Atualizado!'); 
+          router.push('/admin/jobs'); 
+      } else { toast.error('Erro ao atualizar.'); }
+>>>>>>> Stashed changes
     } catch (err) { toast.error('Erro de rede.'); } finally { setIsSaving(false); }
   };
 

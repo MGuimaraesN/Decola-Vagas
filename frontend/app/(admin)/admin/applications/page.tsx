@@ -1,17 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+<<<<<<< Updated upstream
 import Link from 'next/link'; // <--- IMPORTAÇÃO QUE ESTAVA FALTANDO
+=======
+import Link from 'next/link';
+>>>>>>> Stashed changes
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+<<<<<<< Updated upstream
+=======
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+>>>>>>> Stashed changes
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
 import { 
   FileText, CheckCircle, XCircle, Search, 
+<<<<<<< Updated upstream
   Loader2, User, Eye // <--- Eye TAMBÉM PRECISA ESTAR AQUI
+=======
+  Loader2, User, Eye, Filter 
+>>>>>>> Stashed changes
 } from 'lucide-react';
 
 interface Application {
@@ -24,7 +38,11 @@ interface Application {
     lastName: string;
     email: string;
     avatarUrl: string | null;
+<<<<<<< Updated upstream
     resumeUrl: string | null; // Adicionado para fallback
+=======
+    resumeUrl: string | null;
+>>>>>>> Stashed changes
     course: string | null;
   };
   job: {
@@ -138,6 +156,7 @@ export default function AdminApplicationsPage() {
         </div>
       </div>
 
+<<<<<<< Updated upstream
       {/* Filtros */}
       <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
         <div className="relative flex-1">
@@ -160,6 +179,42 @@ export default function AdminApplicationsPage() {
              <option value="ACCEPTED">Aprovado</option>
              <option value="REJECTED">Rejeitado</option>
            </select>
+=======
+      {/* --- BARRA DE FILTROS PADRONIZADA --- */}
+      <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm mb-6">
+        <div className="flex flex-col md:flex-row gap-4">
+          
+          {/* Busca (Input Composto) */}
+          <div className="flex items-center gap-2 flex-1 border border-neutral-200 rounded-md px-3 bg-neutral-50 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+            <Search className="h-4 w-4 text-neutral-400 shrink-0" />
+            <Input 
+                placeholder="Buscar por candidato ou vaga..." 
+                className="border-none shadow-none focus-visible:ring-0 h-9 bg-transparent w-full text-sm placeholder:text-neutral-400"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Select Status */}
+          <div className="w-full md:w-[200px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="bg-white border-neutral-200 h-9 md:h-full">
+                <div className="flex items-center gap-2 text-neutral-600">
+                    <Filter className="h-3.5 w-3.5 text-neutral-400" />
+                    <SelectValue placeholder="Status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os Status</SelectItem>
+                <SelectItem value="PENDING">Pendente</SelectItem>
+                <SelectItem value="REVIEWING">Em Análise</SelectItem>
+                <SelectItem value="ACCEPTED">Aprovado</SelectItem>
+                <SelectItem value="REJECTED">Rejeitado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+>>>>>>> Stashed changes
         </div>
       </div>
 

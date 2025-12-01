@@ -1,10 +1,14 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { 
   Briefcase, Bookmark, MapPin, Building, Search, 
+<<<<<<< Updated upstream
   Filter, Calendar, ChevronLeft, ChevronRight, Loader2 
+=======
+  Calendar, ChevronLeft, ChevronRight, Loader2, Filter 
+>>>>>>> Stashed changes
 } from 'lucide-react';
 import { JobDetailModal } from '@/components/JobDetailModal';
 import { toast } from 'sonner';
@@ -132,6 +136,7 @@ export default function DashboardPage() {
         <p className="text-neutral-500 mt-2">Encontre estágios e vagas exclusivas da sua rede.</p>
       </div>
 
+<<<<<<< Updated upstream
       {/* Barra de Filtros (Estilo Card) */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-200 mb-8 sticky top-20 z-30">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -140,28 +145,72 @@ export default function DashboardPage() {
             <Input 
                 placeholder="Buscar por cargo, empresa..." 
                 className="pl-9 bg-neutral-50 border-neutral-200 focus-visible:ring-blue-500"
+=======
+      {/* --- BARRA DE FILTROS PADRONIZADA (Estilo Admin) --- */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-neutral-200 mb-8">
+        <div className="flex flex-col md:flex-row gap-4">
+          
+          {/* Busca (Input Composto) */}
+          <div className="flex items-center gap-2 flex-1 border border-neutral-200 rounded-md px-3 bg-neutral-50 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+            <Search className="h-4 w-4 text-neutral-400 shrink-0" />
+            <Input 
+                placeholder="Buscar por cargo, empresa..." 
+                className="border-none shadow-none focus-visible:ring-0 h-9 bg-transparent w-full text-sm placeholder:text-neutral-400"
+>>>>>>> Stashed changes
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value, page: 1 }))}
             />
           </div>
+<<<<<<< Updated upstream
           <div className="md:col-span-3">
             <Select value={filters.areaId} onValueChange={(v) => setFilters(prev => ({ ...prev, areaId: v === 'all' ? '' : v, page: 1 }))}>
               <SelectTrigger className="bg-neutral-50 border-neutral-200"><SelectValue placeholder="Área" /></SelectTrigger>
+=======
+
+          {/* Select Área */}
+          <div className="w-full md:w-[200px]">
+            <Select value={filters.areaId} onValueChange={(v) => setFilters(prev => ({ ...prev, areaId: v === 'all' ? '' : v, page: 1 }))}>
+              <SelectTrigger className="bg-white border-neutral-200 h-11 md:h-full">
+                <div className="flex items-center gap-2 text-neutral-600">
+                    <Filter className="h-3.5 w-3.5 text-neutral-400" />
+                    <SelectValue placeholder="Todas as Áreas" />
+                </div>
+              </SelectTrigger>
+>>>>>>> Stashed changes
               <SelectContent>
                 <SelectItem value="all">Todas as Áreas</SelectItem>
                 {areas.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+<<<<<<< Updated upstream
           <div className="md:col-span-3">
             <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v === 'all' ? '' : v, page: 1 }))}>
               <SelectTrigger className="bg-neutral-50 border-neutral-200"><SelectValue placeholder="Categoria" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as Categorias</SelectItem>
+=======
+
+          {/* Select Categoria */}
+          <div className="w-full md:w-[200px]">
+            <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v === 'all' ? '' : v, page: 1 }))}>
+              <SelectTrigger className="bg-white border-neutral-200 h-11 md:h-full">
+                 <div className="flex items-center gap-2 text-neutral-600">
+                    <Briefcase className="h-3.5 w-3.5 text-neutral-400" />
+                    <SelectValue placeholder="Todas Categorias" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Categorias</SelectItem>
+>>>>>>> Stashed changes
                 {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         </div>
       </div>
 
@@ -192,7 +241,11 @@ export default function DashboardPage() {
 
                 <div>
                     <div className="mb-4">
+<<<<<<< Updated upstream
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 mb-2">
+=======
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 mb-2 border border-blue-100">
+>>>>>>> Stashed changes
                             {job.category.name}
                         </span>
                         <h3 className="text-lg font-bold text-neutral-900 group-hover:text-blue-600 transition-colors line-clamp-2">

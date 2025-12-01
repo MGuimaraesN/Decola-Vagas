@@ -6,10 +6,20 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { 
+<<<<<<< Updated upstream
   ChevronLeft, Mail, Calendar, MapPin, Building, 
   Briefcase, CheckCircle, XCircle, FileText, 
   Linkedin, Github, Globe, User, GraduationCap, Loader2 
 } from 'lucide-react';
+=======
+  ChevronLeft, Building, 
+  Briefcase, CheckCircle, XCircle, FileText, MapPin,
+  Linkedin, Github, Globe, User, GraduationCap, Loader2, Eye 
+} from 'lucide-react';
+// 1. IMPORTAR O HOOK
+import { useBreadcrumb } from '@/components/ui/breadcrumbs';
+import Link from 'next/link';
+>>>>>>> Stashed changes
 
 interface ApplicationDetail {
   id: number;
@@ -48,13 +58,30 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
+<<<<<<< Updated upstream
+=======
+  // 2. USAR O HOOK
+  const { setCustomLabel } = useBreadcrumb();
+
+>>>>>>> Stashed changes
   const fetchDetails = async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/applications/manage/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
+<<<<<<< Updated upstream
         setApp(await res.json());
+=======
+        const data = await res.json();
+        setApp(data);
+        
+        // 3. DEFINIR O NOME NO BREADCRUMB
+        // Aqui usamos o nome do candidato para substituir o ID na navegação
+        if (data.user) {
+            setCustomLabel(String(id), `${data.user.firstName} ${data.user.lastName}`);
+        }
+>>>>>>> Stashed changes
       } else {
         toast.error('Erro ao carregar detalhes.');
         router.push('/admin/applications');
@@ -68,7 +95,11 @@ export default function ApplicationDetailPage() {
 
   useEffect(() => {
     if (token && id) fetchDetails();
+<<<<<<< Updated upstream
   }, [token, id]);
+=======
+  }, [token, id]); // Adicionei fetchDetails implícito nas deps ou ignore se preferir o padrão anterior
+>>>>>>> Stashed changes
 
   const handleStatusChange = async (newStatus: string) => {
     setUpdating(true);
@@ -84,7 +115,11 @@ export default function ApplicationDetailPage() {
 
       if (res.ok) {
         toast.success(`Status alterado para ${newStatus}`);
+<<<<<<< Updated upstream
         fetchDetails(); // Recarrega para garantir
+=======
+        fetchDetails(); 
+>>>>>>> Stashed changes
       } else {
         toast.error('Erro ao atualizar.');
       }
@@ -98,14 +133,21 @@ export default function ApplicationDetailPage() {
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-blue-600 h-8 w-8" /></div>;
   if (!app) return null;
 
+<<<<<<< Updated upstream
   // Currículo: Usa o da aplicação (snapshot) ou do perfil atual
+=======
+>>>>>>> Stashed changes
   const resumeLink = app.resumeUrl || app.user.resumeUrl;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       {/* Header com Botão Voltar */}
       <div className="flex items-center gap-4">
+<<<<<<< Updated upstream
         <Button variant="ghost" size="sm" onClick={() => router.back()} className="pl-0 text-neutral-500 hover:text-neutral-900">
+=======
+        <Button variant="ghost" size="sm" onClick={() => router.back()} className="pl-0 text-neutral-500 hover:text-neutral-900 px-0">
+>>>>>>> Stashed changes
             <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
         </Button>
       </div>
@@ -120,7 +162,11 @@ export default function ApplicationDetailPage() {
                 <div className="p-6 md:p-8 border-b border-neutral-100 flex flex-col md:flex-row gap-6 items-center md:items-start">
                     <div className="h-24 w-24 rounded-full bg-neutral-100 overflow-hidden shrink-0 border-2 border-white shadow-sm">
                         {app.user.avatarUrl ? (
+<<<<<<< Updated upstream
                             <img src={`${process.env.NEXT_PUBLIC_API_URL}${app.user.avatarUrl}`} className="h-full w-full object-cover" />
+=======
+                            <img src={`${process.env.NEXT_PUBLIC_API_URL}${app.user.avatarUrl}`} className="h-full w-full object-cover" alt="Avatar" />
+>>>>>>> Stashed changes
                         ) : (
                             <div className="h-full w-full flex items-center justify-center text-neutral-400">
                                 <User className="h-10 w-10" />
@@ -134,17 +180,29 @@ export default function ApplicationDetailPage() {
                         <div className="flex flex-wrap justify-center md:justify-start gap-2">
                             {app.user.linkedinUrl && (
                                 <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+<<<<<<< Updated upstream
                                     <a href={app.user.linkedinUrl} target="_blank"><Linkedin className="h-3 w-3 mr-2 text-[#0077b5]" /> LinkedIn</a>
+=======
+                                    <a href={app.user.linkedinUrl} target="_blank" rel="noopener noreferrer"><Linkedin className="h-3 w-3 mr-2 text-[#0077b5]" /> LinkedIn</a>
+>>>>>>> Stashed changes
                                 </Button>
                             )}
                             {app.user.githubUrl && (
                                 <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+<<<<<<< Updated upstream
                                     <a href={app.user.githubUrl} target="_blank"><Github className="h-3 w-3 mr-2 text-neutral-800" /> GitHub</a>
+=======
+                                    <a href={app.user.githubUrl} target="_blank" rel="noopener noreferrer"><Github className="h-3 w-3 mr-2 text-neutral-800" /> GitHub</a>
+>>>>>>> Stashed changes
                                 </Button>
                             )}
                             {app.user.portfolioUrl && (
                                 <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+<<<<<<< Updated upstream
                                     <a href={app.user.portfolioUrl} target="_blank"><Globe className="h-3 w-3 mr-2 text-emerald-600" /> Portfólio</a>
+=======
+                                    <a href={app.user.portfolioUrl} target="_blank" rel="noopener noreferrer"><Globe className="h-3 w-3 mr-2 text-emerald-600" /> Portfólio</a>
+>>>>>>> Stashed changes
                                 </Button>
                             )}
                         </div>
@@ -265,8 +323,16 @@ export default function ApplicationDetailPage() {
                     </div>
                 </div>
                 
+<<<<<<< Updated upstream
                 <Button variant="link" asChild className="mt-4 px-0 text-blue-600">
                     <a href={`/jobs/${app.job.id}`} target="_blank">Ver vaga original &rarr;</a>
+=======
+                {/* Botão Ver Vaga */}
+                <Button variant="ghost" className="mt-4 w-full justify-start pl-0 text-blue-600 hover:text-blue-700" asChild>
+                    <Link href={`/admin/jobs/edit/${app.job.id}`} target="_blank">
+                        <Eye className="h-4 w-4 mr-2" /> Ver vaga original
+                    </Link>
+>>>>>>> Stashed changes
                 </Button>
             </div>
 
