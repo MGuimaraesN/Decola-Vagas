@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/user.controller.js';
 import { AuthMiddleware } from '../middlewares/auth.middlewares.js';
+import { upload } from '../middlewares/upload.middleware.js';
 
 const userRoutes = Router();
 const userController = new UserController();
@@ -32,6 +33,17 @@ userRoutes.put(
     authMiddleware.auth,
     userController.updateProfile
 );
+userRoutes.post(
+    '/profile/avatar',
+    authMiddleware.auth,
+    upload.single('avatar'),
+    userController.uploadAvatar
+);
+userRoutes.post(
+    '/profile/resume',
+    authMiddleware.auth,
+    upload.single('resume'),
+    userController.uploadResume);
 userRoutes.post(
     '/change-password',
     authMiddleware.auth,

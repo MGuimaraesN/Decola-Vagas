@@ -1,31 +1,30 @@
-// mguimaraesn/decola-vagas/Decola-Vagas-refactor-auth-logic/frontend/app/(dashboard)/dashboard/layout.tsx
 "use client";
 
 import { useEffect, ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Briefcase,
   User,
   Building,
-  Bookmark, // Ícone para Vagas Salvas
+  Bookmark, 
+  FileText // Ícone para Candidaturas
 } from 'lucide-react';
 import { Toaster } from 'sonner';
-import Sidebar, { NavLink } from '@/components/layout/Sidebar'; // Importando o Sidebar unificado
-import Header from '@/components/layout/Header'; // Importando o Header unificado
+import Sidebar, { NavLink } from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
 
-// --- INÍCIO DA LÓGICA CORRIGIDA ---
-// Links de navegação do Dashboard com 'roles'
+// --- MENU ATUALIZADO ---
 const allNavLinks: NavLink[] = [
-  { href: '/dashboard', label: 'Mural', icon: LayoutDashboard, roles: ['student', 'professor', 'coordenador', 'empresa','admin', 'superadmin', 'empresa'] },
-  { href: '/dashboard/saved', label: 'Vagas Salvas', icon: Bookmark, roles: ['student', 'professor', 'coordenador', 'empresa', 'admin', 'superadmin', 'empresa'] }, // Apenas para 'student'
-  { href: '/dashboard/profile', label: 'Meu Perfil', icon: User, roles: ['student', 'professor', 'coordenador', 'empresa','admin', 'superadmin', 'empresa'] },
+  { href: '/dashboard', label: 'Mural de Vagas', icon: LayoutDashboard, roles: ['student', 'professor', 'coordenador', 'empresa', 'admin', 'superadmin'] },
+  { href: '/dashboard/applications', label: 'Minhas Candidaturas', icon: FileText, roles: ['student', 'professor', 'coordenador', 'admin', 'superadmin'] }, // Exclusivo aluno
+  { href: '/dashboard/saved', label: 'Vagas Salvas', icon: Bookmark, roles: ['student', 'professor', 'coordenador', 'admin', 'superadmin'] },
+  { href: '/dashboard/profile', label: 'Meu Perfil', icon: User, roles: ['student', 'professor', 'coordenador', 'empresa', 'admin', 'superadmin'] },
 ];
-// --- FIM DA LÓGICA CORRIGIDA ---
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, getActiveRole } = useAuth(); // Usando getActiveRole
   const router = useRouter();
 
   useEffect(() => {
@@ -34,7 +33,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [user, loading, router]);
 
-  // Mostra um loader enquanto o usuário está sendo carregado
   if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-neutral-50">
@@ -43,27 +41,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // --- INÍCIO DA LÓGICA CORRIGIDA ---
-  // Obter o cargo ATIVO do usuário para filtrar os links
-  const activeInstitution = user.institutions.find(
-    (inst: any) => inst.institution.id === user.activeInstitutionId
-  );
-
-  // Se não tiver instituição ativa, use o primeiro cargo que encontrar (ex: 'student' ou 'superadmin')
-  // Isso é crucial para o superadmin ver os links corretos
-  const activeRole = activeInstitution?.role.name || user.institutions[0]?.role.name;
-
+  // Filtrar links baseado no cargo ativo
+  const activeRole = getActiveRole();
   const filteredLinks = allNavLinks.filter(
-    (link) => link.roles?.includes(activeRole || '')
+    (link) => !link.roles || (activeRole && link.roles.includes(activeRole))
   );
-  // --- FIM DA LÓGICA CORRIGIDA ---
 
   return (
     <div className="flex h-screen w-full bg-white">
       <Sidebar
         title="Decola Vagas"
         icon={Building}
-        navLinks={filteredLinks} // Usar os links filtrados
+        navLinks={filteredLinks} 
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">

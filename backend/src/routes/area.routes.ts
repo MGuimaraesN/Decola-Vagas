@@ -8,6 +8,13 @@ const areaController = new AreaController();
 const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
+// --- NOVA ROTA PÚBLICA ---
+areaRoutes.get(
+    '/public',
+    areaController.getAll
+);
+// -------------------------
+
 areaRoutes.get(
     '/',
     authMiddleware.auth,

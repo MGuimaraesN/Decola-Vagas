@@ -4,28 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Briefcase, Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
-// Interfaces (ajustadas para o contexto de Vagas)
 interface Job {
   id: number;
   title: string;
@@ -39,98 +28,74 @@ const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/admin/jobs`;
 
 export default function AdminJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
+  const [search, setSearch] = useState('');
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
-  const [isAlertDialogOpen, setIsAlertDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const { token } = useAuth();
   const router = useRouter();
 
-  const fetchData = async () => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const res = await fetch(API_URL, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setJobs(data);
-      } else {
-        toast.error('Falha ao buscar vagas.');
-      }
-    } catch (error) {
-      toast.error('Erro de rede ao buscar vagas.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     document.title = 'Admin: Vagas | Decola Vagas';
-  }, []);
-
-  useEffect(() => {
+    const fetchData = async () => {
+      if (!token) return;
+      setIsLoading(true);
+      try {
+        const res = await fetch(API_URL, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setJobs(data);
+          setFilteredJobs(data);
+        }
+      } catch (error) { toast.error('Erro de rede.'); } 
+      finally { setIsLoading(false); }
+    };
     fetchData();
   }, [token]);
 
-  const openAlertDialog = (job: Job) => {
-    setJobToDelete(job);
-    setIsAlertDialogOpen(true);
-  };
-
-  const closeAlertDialog = () => {
-    setJobToDelete(null);
-    setIsAlertDialogOpen(false);
-  };
-
-  const handleEdit = (jobId: number) => {
-    // ALTERAÇÃO AQUI: Redireciona para a nova página de edição do admin
-    router.push(`/admin/jobs/edit/${jobId}`);
-  };
+  useEffect(() => {
+    const lower = search.toLowerCase();
+    setFilteredJobs(jobs.filter(j => j.title.toLowerCase().includes(lower) || j.institution.name.toLowerCase().includes(lower)));
+  }, [search, jobs]);
 
   const handleDelete = async () => {
     if (!token || !jobToDelete) return;
-
     try {
-      const res = await fetch(`${API_URL}/${jobToDelete.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await fetch(`${API_URL}/${jobToDelete.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
       if (res.ok || res.status === 204) {
-        toast.success('Vaga excluída com sucesso!');
-        closeAlertDialog();
-        fetchData(); // Re-fetch
-      } else {
-        toast.error('Falha ao excluir vaga.');
-      }
-    } catch (error) {
-      toast.error('Erro de rede ao excluir vaga.');
-    }
+        toast.success('Vaga excluída!');
+        setJobs(jobs.filter(j => j.id !== jobToDelete.id));
+        setJobToDelete(null);
+      } else { toast.error('Erro ao excluir.'); }
+    } catch (error) { toast.error('Erro de rede.'); }
   };
 
-  if (isLoading) {
-    return <div>Carregando...</div>;
-  }
-
   return (
-    // Div container removida para preencher o layout
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Gerenciamento de Todas as Vagas</h1>
-        {/* ALTERAÇÃO AQUI: Link aponta para a nova página de criação do admin */}
-        <Button asChild>
-          <Link href="/admin/jobs/new">Criar Nova Vaga</Link>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Gerenciar Vagas</h1>
+            <p className="text-neutral-500 text-sm">Controle todas as vagas publicadas no sistema.</p>
+        </div>
+        <Button asChild className="bg-blue-600 hover:bg-blue-700">
+          <Link href="/admin/jobs/new"><Plus className="mr-2 h-4 w-4" /> Criar Vaga</Link>
         </Button>
       </div>
-      {/* Card padronizado em volta da tabela */}
-      <div className="bg-white rounded-lg shadow-sm border">
+
+      <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-neutral-200 shadow-sm max-w-md">
+        <Search className="h-4 w-4 text-neutral-400 ml-2" />
+        <Input 
+            placeholder="Buscar por título ou instituição..." 
+            className="border-none shadow-none focus-visible:ring-0 h-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-neutral-50">
             <TableRow>
               <TableHead>Título</TableHead>
               <TableHead>Instituição</TableHead>
@@ -140,50 +105,54 @@ export default function AdminJobsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {jobs.map((job) => (
-              <TableRow key={job.id}>
-                <TableCell>{job.title}</TableCell>
-                <TableCell>{job.institution.name}</TableCell>
-                <TableCell>{`${job.author.firstName} ${job.author.lastName}`}</TableCell>
-                <TableCell>
-                    <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          job.status === 'published' || job.status === 'open'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {job.status}
-                    </span>
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(job.id)}>
-                    Editar
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => openAlertDialog(job)}>
-                    Excluir
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {isLoading ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-8">Carregando...</TableCell></TableRow>
+            ) : filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => (
+                <TableRow key={job.id} className="hover:bg-neutral-50/50">
+                    <TableCell className="font-medium text-neutral-900">{job.title}</TableCell>
+                    <TableCell className="text-neutral-500">{job.institution.name}</TableCell>
+                    <TableCell className="text-neutral-500">{job.author.firstName} {job.author.lastName}</TableCell>
+                    <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            job.status === 'published' || job.status === 'open' 
+                            ? 'bg-green-100 text-green-800' 
+                            : job.status === 'closed' 
+                                ? 'bg-neutral-100 text-neutral-800'
+                                : 'bg-amber-100 text-amber-800'
+                        }`}>
+                            {job.status === 'rascunho' ? 'Rascunho' : (job.status === 'published' ? 'Publicado' : 'Fechado')}
+                        </span>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500 hover:text-blue-600" onClick={() => router.push(`/admin/jobs/edit/${job.id}`)}>
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500 hover:text-red-600" onClick={() => setJobToDelete(job)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </TableCell>
+                </TableRow>
+                ))
+            ) : (
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-neutral-500">Nenhuma vaga encontrada.</TableCell></TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
-      <AlertDialog open={isAlertDialogOpen} onOpenChange={setIsAlertDialogOpen}>
+      <AlertDialog open={!!jobToDelete} onOpenChange={(o) => !o && setJobToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso excluirá permanentemente a vaga "{jobToDelete?.title}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
-          </AlertDialogFooter>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Excluir vaga?</AlertDialogTitle>
+                <AlertDialogDescription>Isso excluirá permanentemente a vaga "{jobToDelete?.title}".</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+            </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

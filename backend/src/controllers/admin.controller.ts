@@ -1,5 +1,3 @@
-// mguimaraesn/decola-vagas/Decola-Vagas-refactor-auth-logic/backend/src/controllers/admin.controller.ts
-
 import type { Request, Response } from 'express';
 import { prisma } from '../database/prisma.js';
 import bcrypt from 'bcrypt';
@@ -216,6 +214,113 @@ export class AdminController {
             return res.status(404).json({ error: 'Usuário não encontrado' });
        }
       res.status(500).json({'Erro ao deletar usuário.': error});
+    }
+  }
+
+// Adicione este método na classe AdminController
+    async createCompany(req: Request, res: Response) {
+        try {
+            const { 
+                companyName, // Nome da Instituição/Empresa
+                firstName, 
+                lastName, 
+                email, 
+                password 
+            } = req.body;
+
+            if (!companyName || !email || !password || !firstName) {
+                return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+            }
+
+            // 1. Verificar se já existe Instituição ou Usuário
+            const institutionExists = await prisma.institution.findUnique({ where: { name: companyName } });
+            const userExists = await prisma.user.findUnique({ where: { email } });
+
+            if (institutionExists) return res.status(409).json({ error: 'Nome da empresa já cadastrado' });
+            if (userExists) return res.status(409).json({ error: 'Email do usuário já cadastrado' });
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const ipUser = req.ip || 'IP não disponível';
+
+            // 2. Buscar o ID da role 'empresa'
+            const roleEmpresa = await prisma.role.findUnique({ where: { name: 'empresa' } });
+            if (!roleEmpresa) return res.status(500).json({ error: 'Cargo "empresa" não configurado no sistema.' });
+
+            // 3. Transação para criar tudo junto
+            const result = await prisma.$transaction(async (tx) => {
+                // Criar Instituição
+                const newInstitution = await tx.institution.create({
+                  data: { 
+                        name: companyName,
+                        type: 'company' // <--- IMPORTANTE: Define como empresa
+                    }
+                });
+
+                // Criar Usuário
+                const newUser = await tx.user.create({
+                    data: {
+                        firstName,
+                        lastName,
+                        email,
+                        password: hashedPassword,
+                        ip: ipUser,
+                        activeInstitutionId: newInstitution.id
+                    }
+                });
+
+                // Vincular
+                await tx.userInstitutionRole.create({
+                    data: {
+                        userId: newUser.id,
+                        institutionId: newInstitution.id,
+                        roleId: roleEmpresa.id
+                    }
+                });
+
+                return { company: newInstitution, user: newUser };
+            });
+
+            res.status(201).json(result);
+
+        } catch (error) {
+            console.error('Erro ao criar empresa:', error);
+            res.status(500).json({ error: 'Erro interno ao criar empresa.' });
+        }
+    }
+
+  // Adicione este método na classe AdminController
+  async updateUser(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, email } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ error: 'ID do usuário é obrigatório.' });
+      }
+
+      // Verifica se o email já está em uso por OUTRO usuário
+      if (email) {
+        const emailExists = await prisma.user.findUnique({
+          where: { email },
+        });
+        if (emailExists && emailExists.id !== Number(id)) {
+          return res.status(409).json({ error: 'Este email já está em uso por outro usuário.' });
+        }
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: Number(id) },
+        data: {
+          firstName,
+          lastName,
+          email,
+        },
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      res.status(500).json({ error: 'Erro interno ao atualizar usuário.' });
     }
   }
 }

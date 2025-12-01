@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import type { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../database/prisma.js';
-import { sendPasswordResetEmail } from '../services/mail.service.js';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendSecurityAlert } from '../services/mail.service.js';
 
 export class UserController {
 
@@ -53,6 +53,14 @@ export class UserController {
                 where: { id: newUser.id },
                 data: { activeInstitutionId: institutionId }
             });
+
+            // Envia e-mail de boas-vindas
+            try {
+                await sendWelcomeEmail(newUser.email, newUser.firstName);
+            } catch (emailError) {
+                console.error('Erro ao enviar e-mail de boas-vindas:', emailError);
+                // Não bloqueia o registro se o e-mail falhar
+            }
 
             const secret = process.env.JWT_SECRET;
 
@@ -238,6 +246,13 @@ export class UserController {
                 }
             });
 
+            // Envia alerta de segurança
+            try {
+                await sendSecurityAlert(user.email);
+            } catch (emailError) {
+                console.error('Erro ao enviar alerta de segurança (resetPassword):', emailError);
+            }
+
             return res.status(200).json({ message: 'Senha redefinida com sucesso!' });
 
         } catch (error) {
@@ -274,6 +289,7 @@ export class UserController {
                 firstName: userData?.firstName,
                 lastName: userData?.lastName,
                 email: userData?.email,
+                avatarUrl: userData?.avatarUrl,
                 institutions: userData?.institutions,
                 activeInstitutionId: userData?.activeInstitutionId,
                 bio: userData?.bio,
@@ -314,6 +330,13 @@ export class UserController {
                 where: { email: userEmail },
                 data: { password: hashedPassword }
             });
+
+            // Envia alerta de segurança
+            try {
+                await sendSecurityAlert(user.email);
+            } catch (emailError) {
+                console.error('Erro ao enviar alerta de segurança (changePassword):', emailError);
+            }
 
             res.status(200).json({ message: 'Senha alterada com sucesso' });
         } catch (error) {
@@ -400,6 +423,44 @@ export class UserController {
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);
             res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+
+    async uploadAvatar(req: Request, res: Response) {
+        try {
+            const userEmail = (req as any).user?.email;
+            if (!req.file) {
+                return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+            }
+
+            const avatarUrl = `/uploads/${req.file.filename}`;
+
+            await prisma.user.update({
+                where: { email: userEmail },
+                data: { avatarUrl }
+            });
+
+            res.status(200).json({ avatarUrl });
+        } catch (error) {
+            console.error('Erro ao fazer upload de avatar:', error);
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+    }
+    // --- NOVO MÉTODO ---
+    async uploadResume(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user?.userId;
+            if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo PDF enviado' });
+            
+            const resumeUrl = `/uploads/${req.file.filename}`;
+            await prisma.user.update({
+                where: { id: userId },
+                data: { resumeUrl }
+            });
+            res.status(200).json({ resumeUrl });
+        } catch (error) {
+            console.error('Erro upload CV:', error);
+            res.status(500).json({ error: 'Erro interno' });
         }
     }
 };

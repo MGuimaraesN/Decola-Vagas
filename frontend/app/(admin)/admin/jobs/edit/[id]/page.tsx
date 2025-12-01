@@ -1,32 +1,21 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-{/* Importação do Textarea */}
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { ChevronLeft, Loader2 } from 'lucide-react';
+// IMPORTAÇÃO DO HOOK
+import { useBreadcrumb } from '@/components/ui/breadcrumbs';
 
-// Interfaces
-interface Category {
-  id: number;
-  name: string;
-}
-interface Area {
-  id: number;
-  name: string;
-}
+interface Category { id: number; name: string; }
+interface Area { id: number; name: string; }
+interface Institution { id: number; name: string; }
 
-// Esta é a nova página de edição de vaga DENTRO do /admin
 export default function AdminEditJobPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,28 +25,31 @@ export default function AdminEditJobPage() {
   const [categoryId, setCategoryId] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [status, setStatus] = useState('rascunho');
+  const [institutionId, setInstitutionId] = useState('');
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const { id } = params;
+  const { id } = params; // Ex: "4"
+  
+  // USO DO HOOK
+  const { setCustomLabel } = useBreadcrumb();
 
-  // Fetch job data, categories, and areas
-
-  useEffect(() => {
-    document.title = 'Admin: Editar Vaga | Decola Vagas';
-  }, []);
+  const canEditInstitution = useMemo(() => {
+    return user?.institutions.some((inst: any) => ['admin', 'superadmin'].includes(inst.role.name));
+  }, [user]);
 
   useEffect(() => {
     if (!token || !id) return;
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // A API para buscar a vaga é a mesma
         const [jobRes, catRes, areaRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/${id}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { headers: { 'Authorization': `Bearer ${token}` } }),
@@ -66,163 +58,140 @@ export default function AdminEditJobPage() {
 
         if (catRes.ok) setCategories(await catRes.json());
         if (areaRes.ok) setAreas(await areaRes.json());
-
-        if (jobRes.ok) {
-          const jobData = await jobRes.json();
-          setTitle(jobData.title);
-          setDescription(jobData.description);
-          setEmail(jobData.email);
-          setTelephone(jobData.telephone);
-          setAreaId(jobData.areaId.toString());
-          setCategoryId(jobData.categoryId.toString());
-          setCompanyName(jobData.companyName || '');
-          setStatus(jobData.status);
-        } else {
-          toast.error('Falha ao carregar dados da vaga.');
+        if (canEditInstitution) {
+            const instRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/institutions`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (instRes.ok) setInstitutions(await instRes.json());
         }
 
-      } catch (err) {
-        toast.error('Falha ao carregar dados da vaga.');
-      } finally {
-        setIsLoading(false);
-      }
+        if (jobRes.ok) {
+          const job = await jobRes.json();
+          setTitle(job.title); setDescription(job.description); setEmail(job.email); setTelephone(job.telephone);
+          setAreaId(String(job.areaId)); setCategoryId(String(job.categoryId)); setCompanyName(job.companyName || '');
+          setStatus(job.status);
+          if (job.institutionId) setInstitutionId(String(job.institutionId));
+          
+          // --- AQUI É ONDE O NOME É ENVIADO PARA O BREADCRUMB ---
+          // Diz ao breadcrumb: "Quando ver o segmento '4', mostre 'Desenvolvedor...'"
+          setCustomLabel(String(id), job.title);
+          
+        } else { toast.error('Vaga não encontrada.'); router.push('/admin/jobs'); }
+      } catch (err) { toast.error('Erro de rede.'); } finally { setIsLoading(false); }
     };
     fetchData();
-  }, [token, id]);
+  }, [token, id, canEditInstitution, router, setCustomLabel]); 
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!token) {
-      toast.error("Autenticação necessária.");
-      return;
-    }
-    setIsLoading(true);
-
+    if (!token) return;
+    setIsSaving(true);
     try {
-      // A API de edição é a mesma
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/edit/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title,
-          description,
-          email,
-          telephone,
-          areaId: parseInt(areaId),
-          categoryId: parseInt(categoryId),
-          companyName: companyName,
-          status: status
-        }),
-      });
-
-      if (res.ok) {
-        toast.success('Vaga atualizada com sucesso!');
-        // ALTERAÇÃO AQUI: Redireciona de volta para a lista de vagas do admin
-        router.push('/admin/jobs');
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Falha ao atualizar vaga.');
-      }
-    } catch (err) {
-      toast.error('Erro de rede.');
-    } finally {
-      setIsLoading(false);
-    }
+      const body: any = { title, description, email, telephone, areaId: parseInt(areaId), categoryId: parseInt(categoryId), companyName, status, institutionId: canEditInstitution && institutionId ? parseInt(institutionId) : undefined };
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/edit/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(body) });
+      if (res.ok) { 
+          // Atualiza o breadcrumb se o título mudou ao salvar
+          setCustomLabel(String(id), title);
+          toast.success('Atualizado!'); 
+          router.push('/admin/jobs'); 
+      } else { toast.error('Erro ao atualizar.'); }
+    } catch (err) { toast.error('Erro de rede.'); } finally { setIsSaving(false); }
   };
 
-  if (isLoading) {
-    return <div className="text-center p-10">Carregando dados da vaga...</div>
-  }
+  if (isLoading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600"/></div>;
 
   return (
-    // Container máximo e centralizado para formulários
-    <div className="max-w-4xl mx-auto">
-      {/* Título padronizado */}
-      <h1 className="text-2xl font-bold mb-6 text-neutral-900">Editar Vaga</h1>
-      {/* Card padronizado em volta do formulário */}
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-sm space-y-6 border border-neutral-200/60">
+    <div className="max-w-3xl mx-auto space-y-6 pb-10">
+      <div className="flex items-center gap-2 mb-4">
+        <Button variant="ghost" size="sm" onClick={() => router.back()} className="text-neutral-500 hover:text-neutral-900 px-0">
+            <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
+        </Button>
+      </div>
 
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">Título da Vaga</label>
-          <Input type="text" id="title" value={title} onChange={e => setTitle(e.target.value)} required />
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-neutral-900">Editar Vaga</h1>
+        <span className="text-sm text-neutral-500 font-mono">ID: #{id}</span>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Card 1: Informações Principais */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+            <h2 className="text-base font-semibold text-neutral-900 mb-4 pb-2 border-b">Sobre a Vaga</h2>
+            <div className="space-y-4">
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Título do Cargo</label>
+                    <Input value={title} onChange={e => setTitle(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Descrição Detalhada</label>
+                    <div className="prose-sm"><RichTextEditor value={description} onChange={setDescription} /></div>
+                </div>
+            </div>
         </div>
 
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-neutral-700 mb-1">Descrição Completa</label>
-          {/* Componente Textarea aplicado */}
-          <Textarea 
-            id="description" 
-            value={description} 
-            onChange={e => setDescription(e.target.value)} 
-            className="min-h-[150px]" 
-            required 
-          />
+        {/* Card 2: Classificação e Contato */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+            <h2 className="text-base font-semibold text-neutral-900 mb-4 pb-2 border-b">Detalhes e Contato</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Área de Atuação</label>
+                    <Select value={areaId} onValueChange={setAreaId} required>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>{areas.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Categoria</label>
+                    <Select value={categoryId} onValueChange={setCategoryId} required>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Email</label>
+                    <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Telefone</label>
+                    <Input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)} required />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Empresa (Opcional)</label>
+                    <Input value={companyName} onChange={e => setCompanyName(e.target.value)} />
+                </div>
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-neutral-700 mb-1">Email de Contato</label>
-            <Input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} required />
-          </div>
-          <div>
-            <label htmlFor="telephone" className="block text-sm font-medium text-neutral-700 mb-1">Telefone de Contato</label>
-            <Input type="tel" id="telephone" value={telephone} onChange={e => setTelephone(e.target.value)} required />
-          </div>
+        {/* Card 3: Status */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+            <h2 className="text-base font-semibold text-neutral-900 mb-4 pb-2 border-b">Status e Publicação</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                    <label className="text-sm font-medium text-neutral-700">Status Atual</label>
+                    <Select value={status} onValueChange={setStatus} required>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="rascunho">Rascunho (Oculto)</SelectItem>
+                            <SelectItem value="published">Publicado (Visível)</SelectItem>
+                            <SelectItem value="closed">Fechado</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                {canEditInstitution && (
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-neutral-700">Instituição Vinculada</label>
+                        <Select value={institutionId} onValueChange={setInstitutionId}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>{institutions.map(i => <SelectItem key={i.id} value={String(i.id)}>{i.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                    </div>
+                )}
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label htmlFor="companyName" className="block text-sm font-medium text-neutral-700 mb-1">Nome da Empresa (Opcional)</label>
-            <Input type="text" id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} />
-          </div>
-          <div>
-            <label htmlFor="areaId" className="block text-sm font-medium text-neutral-700 mb-1">Área</label>
-            <Select value={areaId} onValueChange={setAreaId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma área" />
-              </SelectTrigger>
-              <SelectContent>
-                {areas.map((area: any) => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label htmlFor="categoryId" className="block text-sm font-medium text-neutral-700 mb-1">Categoria</label>
-            <Select value={categoryId} onValueChange={setCategoryId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat: any) => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-neutral-700 mb-1">Status</label>
-            <Select value={status} onValueChange={setStatus} required>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rascunho">Rascunho (Privado)</SelectItem>
-                <SelectItem value="published">Publicado (Público)</SelectItem>
-                <SelectItem value="closed">Fechado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-4 pt-4">
-           {/* ALTERAÇÃO AQUI: router.back() vai para /admin/jobs */}
-           <Button type="button" variant="outline" onClick={() => router.push('/admin/jobs')} disabled={isLoading}>
-            Cancelar
+        <div className="flex justify-end gap-3">
+           <Button type="button" variant="outline" onClick={() => router.push('/admin/jobs')}>Cancelar</Button>
+           <Button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 px-8">
+            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
            </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Salvando...' : 'Salvar Alterações'}
-          </Button>
         </div>
       </form>
     </div>

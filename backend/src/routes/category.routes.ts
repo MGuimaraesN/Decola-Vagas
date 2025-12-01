@@ -8,6 +8,13 @@ const categoryController = new CategoryController();
 const authMiddleware = new AuthMiddleware();
 const rbacMiddleware = new RbacMiddleware();
 
+// --- NOVA ROTA PÚBLICA ---
+categoryRoutes.get(
+    '/public',
+    categoryController.getAll
+);
+// -------------------------
+
 categoryRoutes.get(
     '/',
     authMiddleware.auth,

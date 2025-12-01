@@ -1,30 +1,22 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { Briefcase, CheckCircle, Clock, Loader2, Bookmark } from 'lucide-react';
+import { 
+  Briefcase, Bookmark, MapPin, Building, Search, 
+  Calendar, ChevronLeft, ChevronRight, Loader2, Filter 
+} from 'lucide-react';
 import { JobDetailModal } from '@/components/JobDetailModal';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 
-// Definir a interface Job para tipagem
-interface Area {
-  id: number;
-  name: string;
-}
-
-interface Category {
-  id: number;
-  name: string;
-}
-
+// Interfaces
+interface Area { id: number; name: string; }
+interface Category { id: number; name: string; }
 interface Job {
   id: number;
   title: string;
@@ -39,75 +31,28 @@ interface Job {
   companyName?: string | null;
   institution: { name: string };
 }
-
-// Componente de Cartão de Estatística
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  colorClass,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  colorClass: string;
-}) {
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-sm flex items-center gap-4">
-      <div
-        className={`p-3 rounded-full ${colorClass} bg-opacity-10`}
-      >
-        <Icon className={`h-6 w-6 ${colorClass}`} />
-      </div>
-      <div>
-        <h3 className="text-sm font-medium text-neutral-500">{title}</h3>
-        <p className="text-3xl font-bold text-neutral-900">{value}</p>
-      </div>
-    </div>
-  );
-}
+interface PaginationMeta { total: number; page: number; lastPage: number; }
 
 export default function DashboardPage() {
-  const [jobs, setJobs] = useState<Job[]>([]); // Usar a interface Job
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 2. Buscar 'user' do contexto
   const { token, activeInstitutionId, user } = useAuth();
-
-  // Estado para o Modal
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-
-  // Estado para vagas salvas
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoadingSavedJobs, setIsLoadingSavedJobs] = useState(true);
 
-  // Estados para filtros
-  const [filters, setFilters] = useState({ search: '', areaId: '', categoryId: '' });
+  const [filters, setFilters] = useState({ search: '', areaId: '', categoryId: '', page: 1 });
   const [areas, setAreas] = useState<Area[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
 
-  // 3. Determinar se o usuário é admin global
-  const isGlobalAdmin = useMemo(
-    () =>
-      user?.institutions.some(
-        (inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'
-      ),
-    [user]
-  );
+  const isGlobalAdmin = useMemo(() => user?.institutions.some((inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'), [user]);
 
-  const [stats, setStats] = useState({
-    total: 0,
-    published: 0,
-    recent: 0,
-  });
+  useEffect(() => { document.title = 'Mural de Vagas | Decola Vagas'; }, []);
 
+  // Fetch Filtros
   useEffect(() => {
-    document.title = 'Mural de Vagas | Decola Vagas';
-  }, []);
-
-  useEffect(() => {
-    // Busca de áreas e categorias (não depende de outros filtros)
     const fetchFilterData = async () => {
         if (!token) return;
         try {
@@ -117,332 +62,230 @@ export default function DashboardPage() {
             ]);
             if (areaRes.ok) setAreas(await areaRes.json());
             if (catRes.ok) setCategories(await catRes.json());
-        } catch (err) {
-            toast.error("Falha ao carregar dados para os filtros.");
-        }
+        } catch (err) { toast.error("Falha ao carregar filtros."); }
     };
     fetchFilterData();
   }, [token]);
 
+  // Fetch Vagas e Salvos
   useEffect(() => {
-    // 4. Lógica de guarda corrigida
-    if (!token) {
-      setIsLoading(false); // Garante que o loading pare se não houver token
-      return;
-    }
+    if (!token) { setIsLoading(false); return; }
+    if (!user) { setIsLoading(true); return; }
+    if (!isGlobalAdmin && !activeInstitutionId) { setIsLoading(false); setJobs([]); return; }
 
-    // Se o usuário ainda está carregando (user é null), não faça nada
-    if (!user) {
-        setIsLoading(true); // Manter o loading ativo
-        return;
-    }
-
-    // Se é um usuário normal (NÃO admin) E não tem instituição ativa, pare
-    if (!isGlobalAdmin && !activeInstitutionId) {
-        setIsLoading(false);
-        setJobs([]);
-        setStats({ total: 0, published: 0, recent: 0 });
-        return;
-    }
-    // Se for admin, ou se for usuário normal COM instituição ativa, prossiga.
-
-    const fetchJobsAndSavedIds = async () => {
+    const fetchJobs = async () => {
       setIsLoading(true);
-      
       try {
         const query = new URLSearchParams({
             search: filters.search,
             areaId: filters.areaId,
             categoryId: filters.categoryId,
+            page: filters.page.toString(),
+            limit: '9' // Grid 3x3 fica melhor com 9 ou 12
         }).toString();
 
-        // A URL do backend (my-institution) já contém a lógica correta
-        const jobsUrl = `${process.env.NEXT_PUBLIC_API_URL}/jobs/my-institution?${query}`;
-
-        const jobsRes = await fetch(jobsUrl, { headers: { Authorization: `Bearer ${token}` } });
+        const [jobsRes, savedIdsRes] = await Promise.all([
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/jobs/my-institution?${query}`, { headers: { Authorization: `Bearer ${token}` } }),
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/saved-jobs/my-saved/ids`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
 
         if (jobsRes.ok) {
-          const data: Job[] = await jobsRes.json();
-          setJobs(data);
-
-          // Calcular estatísticas
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-          const totalVagas = data.length;
-          const vagasPublicadas = data.filter(
-            (job) => job.status === 'published' || job.status === 'open'
-          ).length;
-          const vagasRecentes = data.filter(
-            (job) => new Date(job.createdAt) > sevenDaysAgo
-          ).length;
-
-          setStats({
-            total: totalVagas,
-            published: vagasPublicadas,
-            recent: vagasRecentes,
-          });
-        } else {
-          toast.error('Falha ao carregar as vagas.');
+          const json = await jobsRes.json();
+          if (json.data) { setJobs(json.data); setMeta(json.meta); } else { setJobs(json); }
         }
-
-      } catch (err) {
-        toast.error('Erro de rede.');
-      } finally {
-        setIsLoading(false);
-      }
+        if (savedIdsRes.ok) {
+            setSavedJobIds(new Set(await savedIdsRes.json()));
+        }
+      } catch (err) { toast.error('Erro de rede.'); } 
+      finally { setIsLoading(false); }
     };
 
-    const fetchSavedIds = async () => {
-        if (!token) return;
-        setIsLoadingSavedJobs(true);
-        try {
-            const savedIdsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/saved-jobs/my-saved/ids`, { headers: { Authorization: `Bearer ${token}` } });
-            if (savedIdsRes.ok) {
-                const ids: number[] = await savedIdsRes.json();
-                setSavedJobIds(new Set(ids));
-            } else {
-                toast.error('Falha ao carregar vagas salvas.');
-            }
-        } catch(err) {
-            toast.error('Erro de rede ao buscar vagas salvas.');
-        } finally {
-            setIsLoadingSavedJobs(false);
-        }
-    }
+    fetchJobs();
+  }, [token, activeInstitutionId, filters, isGlobalAdmin, user]);
 
-    fetchJobsAndSavedIds();
-    fetchSavedIds(); // Chamada separada
-  }, [token, activeInstitutionId, filters, isGlobalAdmin, user]); // 5. Adicionar 'user' e 'isGlobalAdmin'
-
-    const handleToggleSaveJob = async (jobId: number, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation(); // Impede que o modal da vaga abra
-    }
+  const handleToggleSaveJob = async (jobId: number, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (isSaving) return;
     setIsSaving(true);
-
     const isSaved = savedJobIds.has(jobId);
-    const url = `${process.env.NEXT_PUBLIC_API_URL}/saved-jobs/${jobId}`;
-    const method = isSaved ? 'DELETE' : 'POST';
-
     try {
-        const res = await fetch(url, {
-            method,
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/saved-jobs/${jobId}`, {
+            method: isSaved ? 'DELETE' : 'POST',
             headers: { Authorization: `Bearer ${token}` },
         });
-
         if (res.ok) {
             const newSet = new Set(savedJobIds);
-            if (isSaved) {
-                newSet.delete(jobId);
-                toast.info('Vaga removida dos favoritos.');
-            } else {
-                newSet.add(jobId);
-                toast.success('Vaga salva com sucesso!');
-            }
+            isSaved ? newSet.delete(jobId) : newSet.add(jobId);
             setSavedJobIds(newSet);
-        } else {
-            toast.error(`Falha ao ${isSaved ? 'remover' : 'salvar'} vaga.`);
+            toast.success(isSaved ? 'Removido dos salvos.' : 'Vaga salva!');
         }
-    } catch (error) {
-        toast.error('Erro de rede.');
-    } finally {
-        setIsSaving(false);
-    }
-  };
-
-  // Abre o modal com os detalhes da vaga clicada
-  const handleJobClick = (job: Job) => {
-    setSelectedJob(job);
+    } catch { toast.error('Erro ao salvar.'); } 
+    finally { setIsSaving(false); }
   };
 
   return (
-    <div className="container mx-auto">
-      <h1 className="text-3xl font-bold text-neutral-900 mb-6">
-        Mural de Vagas
-      </h1>
-
-      {/* Grid de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          title="Total de Vagas"
-          value={isLoading ? '...' : stats.total}
-          icon={Briefcase}
-          colorClass="text-blue-600"
-        />
-        <StatCard
-          title="Vagas Publicadas"
-          value={isLoading ? '...' : stats.published}
-          icon={CheckCircle}
-          colorClass="text-green-600"
-        />
-        <StatCard
-          title="Novas nos Últimos 7 Dias"
-          value={isLoading ? '...' : stats.recent}
-          icon={Clock}
-          colorClass="text-yellow-600"
-        />
+    <div className="container mx-auto pb-20">
+      
+      {/* Header da Página */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Mural de Oportunidades</h1>
+        <p className="text-neutral-500 mt-2">Encontre estágios e vagas exclusivas da sua rede.</p>
       </div>
 
-       {/* Filtros */}
-      <div className="bg-white p-4 rounded-lg shadow-sm mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Input
-            placeholder="Buscar por título..."
-            value={filters.search}
-            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-          />
-          <Select value={filters.areaId} onValueChange={(value) =>
-            setFilters(prev => ({ ...prev, areaId: value === 'all' ? '' : value }))}>
-              <SelectTrigger><SelectValue placeholder="Filtrar por Área" /></SelectTrigger>
+      {/* --- BARRA DE FILTROS PADRONIZADA (Estilo Admin) --- */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-neutral-200 mb-8">
+        <div className="flex flex-col md:flex-row gap-4">
+          
+          {/* Busca (Input Composto) */}
+          <div className="flex items-center gap-2 flex-1 border border-neutral-200 rounded-md px-3 bg-neutral-50 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+            <Search className="h-4 w-4 text-neutral-400 shrink-0" />
+            <Input 
+                placeholder="Buscar por cargo, empresa..." 
+                className="border-none shadow-none focus-visible:ring-0 h-9 bg-transparent w-full text-sm placeholder:text-neutral-400"
+                value={filters.search}
+                onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value, page: 1 }))}
+            />
+          </div>
+
+          {/* Select Área */}
+          <div className="w-full md:w-[200px]">
+            <Select value={filters.areaId} onValueChange={(v) => setFilters(prev => ({ ...prev, areaId: v === 'all' ? '' : v, page: 1 }))}>
+              <SelectTrigger className="bg-white border-neutral-200 h-11 md:h-full">
+                <div className="flex items-center gap-2 text-neutral-600">
+                    <Filter className="h-3.5 w-3.5 text-neutral-400" />
+                    <SelectValue placeholder="Todas as Áreas" />
+                </div>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as Áreas</SelectItem>
-                {areas.map(area => <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>)}
+                {areas.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filters.categoryId} onValueChange={(value) =>
-              setFilters(prev => ({ ...prev, categoryId: value === 'all' ? '' : value }))}>
-                <SelectTrigger><SelectValue placeholder="Filtrar por Categoria" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Categorias</SelectItem>
-                  {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
-                  </SelectContent>
-              </Select>
-          {/* O botão pode ser usado no futuro para disparar a busca manualmente */}
-          {/* <Button>Buscar</Button> */}
+          </div>
+
+          {/* Select Categoria */}
+          <div className="w-full md:w-[200px]">
+            <Select value={filters.categoryId} onValueChange={(v) => setFilters(prev => ({ ...prev, categoryId: v === 'all' ? '' : v, page: 1 }))}>
+              <SelectTrigger className="bg-white border-neutral-200 h-11 md:h-full">
+                 <div className="flex items-center gap-2 text-neutral-600">
+                    <Briefcase className="h-3.5 w-3.5 text-neutral-400" />
+                    <SelectValue placeholder="Todas Categorias" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas Categorias</SelectItem>
+                {categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
         </div>
       </div>
 
-      {/* Tabela de Vagas Recentes */}
-      <h2 className="text-2xl font-bold text-neutral-900 mb-4">
-        {/* 6. Título dinâmico */}
-        {isGlobalAdmin ? "Todas as Vagas" : "Vagas da sua instituição"}
-      </h2>
-      <div className="bg-white p-6 rounded-lg shadow-sm">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          </div>
-        ) : jobs.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-neutral-200">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider"
-                  >
-                    Título
-                  </th>
-                  {/* 7. Adiciona coluna Instituição se for admin */}
-                  {isGlobalAdmin && (
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider"
+      {/* Grid de Vagas */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-64 bg-neutral-100 animate-pulse rounded-xl" />
+            ))}
+        </div>
+      ) : jobs.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.map((job) => (
+            <div 
+                key={job.id} 
+                onClick={() => setSelectedJob(job)}
+                className="group bg-white rounded-xl border border-neutral-200 p-6 cursor-pointer hover:shadow-lg hover:border-blue-200 transition-all duration-300 relative flex flex-col justify-between"
+            >
+                {/* Badge de Status (se não for rascunho, ou se for admin vendo rascunho) */}
+                <div className="absolute top-4 right-4">
+                    <button 
+                        onClick={(e) => handleToggleSaveJob(job.id, e)} 
+                        className={`p-2 rounded-full transition-colors ${savedJobIds.has(job.id) ? 'text-blue-600 bg-blue-50' : 'text-neutral-400 hover:bg-neutral-100 hover:text-blue-600'}`}
                     >
-                      Instituição
-                    </th>
-                  )}
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider"
-                  >
-                    Área
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider"
-                  >
-                    Categoria
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider"
-                  >
-                    Data
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                   <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Salvar</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-neutral-200">
-                {jobs.map((job) => (
-                  <tr
-                    key={job.id}
-                    className="hover:bg-neutral-50"
-                  >
-                    <td
-                        className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-700 hover:underline cursor-pointer"
-                        onClick={() => handleJobClick(job)}
-                    >
-                      {job.title}
-                    </td>
-                    {/* 8. Adiciona célula da Instituição se for admin */}
-                    {isGlobalAdmin && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                        {job.institution.name}
-                      </td>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                      {job.area.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                      {job.category.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-600">
-                      {new Date(job.createdAt).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          job.status === 'published' || job.status === 'open'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {job.status === 'rascunho' ? 'Rascunho' : (job.status === 'published' || job.status === 'open' ? 'Publicado' : 'Fechado')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                            onClick={(e) => handleToggleSaveJob(job.id, e)}
-                            disabled={isLoadingSavedJobs || isSaving}
-                            className="p-2 rounded-full hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-wait"
-                        >
-                            <Bookmark
-                                className={`h-5 w-5 ${savedJobIds.has(job.id) ? 'text-blue-600 fill-current' : 'text-neutral-400'}`}
-                            />
-                        </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-neutral-500 text-center py-10">
-            Nenhuma vaga encontrada.
-          </p>
-        )}
-      </div>
+                        <Bookmark className={`h-5 w-5 ${savedJobIds.has(job.id) ? 'fill-current' : ''}`} />
+                    </button>
+                </div>
 
-      {/* Renderiza o Modal */}
-       {selectedJob && (
+                <div>
+                    <div className="mb-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 mb-2 border border-blue-100">
+                            {job.category.name}
+                        </span>
+                        <h3 className="text-lg font-bold text-neutral-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                            {job.title}
+                        </h3>
+                        {/* Se tiver nome da empresa, mostra, senão mostra a instituição */}
+                        <div className="flex items-center text-sm text-neutral-500 mt-1">
+                            <Building className="h-3.5 w-3.5 mr-1.5" />
+                            <span className="truncate">{job.companyName || job.institution.name}</span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 mb-6">
+                        <div className="flex items-center text-xs text-neutral-500 bg-neutral-50 p-2 rounded-md">
+                            <MapPin className="h-3.5 w-3.5 mr-2 text-neutral-400" />
+                            <span className="truncate">{job.area.name}</span>
+                        </div>
+                        <div className="flex items-center text-xs text-neutral-500 bg-neutral-50 p-2 rounded-md">
+                            <Calendar className="h-3.5 w-3.5 mr-2 text-neutral-400" />
+                            <span>Publicado em {new Date(job.createdAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-neutral-100 flex justify-between items-center">
+                    <span className="text-xs font-medium text-neutral-400">Ver detalhes</span>
+                    <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <ChevronRight className="h-4 w-4" />
+                    </div>
+                </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-white rounded-xl border border-neutral-200 border-dashed">
+            <div className="bg-neutral-50 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="h-8 w-8 text-neutral-400" />
+            </div>
+            <h3 className="text-lg font-medium text-neutral-900">Nenhuma vaga encontrada</h3>
+            <p className="text-neutral-500 mt-1">Tente ajustar os filtros ou busque por outro termo.</p>
+            <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setFilters({ search: '', areaId: '', categoryId: '', page: 1 })}
+            >
+                Limpar Filtros
+            </Button>
+        </div>
+      )}
+
+      {/* Paginação */}
+      {meta && meta.lastPage > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-12">
+            <Button variant="outline" onClick={() => setFilters(p => ({ ...p, page: p.page - 1 }))} disabled={meta.page <= 1} className="w-10 h-10 p-0 rounded-full">
+                <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium text-neutral-600">
+                Página {meta.page} de {meta.lastPage}
+            </span>
+            <Button variant="outline" onClick={() => setFilters(p => ({ ...p, page: p.page + 1 }))} disabled={meta.page >= meta.lastPage} className="w-10 h-10 p-0 rounded-full">
+                <ChevronRight className="h-4 w-4" />
+            </Button>
+        </div>
+      )}
+
+      {/* Modal de Detalhes */}
+      {selectedJob && (
         <JobDetailModal
             job={selectedJob}
             isOpen={!!selectedJob}
             onClose={() => setSelectedJob(null)}
             isSaved={savedJobIds.has(selectedJob.id)}
-            onToggleSave={(jobId) => handleToggleSaveJob(jobId)}
-            isSaving={isSaving || isLoadingSavedJobs}
+            onToggleSave={(id) => handleToggleSaveJob(id)}
+            isSaving={isSaving}
         />
-       )}
+      )}
     </div>
   );
 }
