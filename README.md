@@ -1,106 +1,208 @@
-# Decola-Vagas
+# 🚀 Decola Vagas
 
-Um portal único que centraliza todas as oportunidades acadêmicas (estágios, IC e vagas) de todas as áreas. Chega de vagas perdidas em e-mails ou murais físicos. Professores e coordenadores postam, e todos os alunos podem filtrar e encontrar sua próxima oportunidade de forma fácil e rápida.
+<div align="center">
+  <img src="frontend/public/decola-vagas-logo.png" alt="Decola Vagas Logo" width="120" />
 
-Este projeto é um monorepo que contém:
+  <h1>Decola Vagas</h1>
+  <h3>O Hub Definitivo de Oportunidades Académicas e Profissionais</h3>
 
-  * **`frontend/`**: Uma aplicação Next.js (React).
-  * **`backend/`**: Uma API Express.js com Prisma e TypeScript.
-  * **`database/`**: Um arquivo `docker-compose.yml` para iniciar um banco de dados MySQL e o phpMyAdmin.
+  <p>
+    <a href="#sobre">Sobre</a> •
+    <a href="#funcionalidades">Funcionalidades</a> •
+    <a href="#tecnologias">Tecnologias</a> •
+    <a href="#como-executar">Como Executar</a> •
+    <a href="#licenca">Licença</a>
+  </p>
+</div>
 
-## 1\. Pré-requisitos
+---
 
-Antes de começar, você precisará ter as seguintes ferramentas instaladas:
+## 📋 Sobre o Projeto {#sobre}
 
-  * **Node.js**:
-      * **O que é?** Ambiente de execução para JavaScript (necessário para o `npm`, `frontend` e `backend`).
-      * **Como instalar?** Baixe a versão LTS (v20.x ou superior) em [nodejs.org](https://nodejs.org/).
-  * **Docker (com Docker Compose)**:
-      * **O que é?** Ferramenta para criar e gerenciar contêineres. Usaremos para rodar o banco de dados MySQL sem precisar instalá-lo manualmente.
-      * **Como instalar?** Baixe o [Docker Desktop](https://www.docker.com/products/docker-desktop/) para seu sistema (Windows, Mac ou Linux). O Docker Compose já vem incluído.
+O **Decola Vagas** é uma plataforma full‑stack criada para resolver a fragmentação de oportunidades no meio acadêmico. Ela centraliza **estágios, IC, emprego e trainee** em um único ambiente, conectando diretamente alunos, docentes, coordenações e empresas.
 
-## 2\. Configuração do Banco de Dados (com Docker)
+Diferente de murais físicos e grupos desorganizados, o Decola Vagas oferece:
 
-As credenciais do banco de dados já estão pré-configuradas no arquivo `database/docker-compose.yml`.
+* Gestão completa de candidaturas
+* Notificações automáticas por e‑mail
+* Perfis profissionais completos
+* Painel administrativo avançado
 
-**1. Inicie o Contêiner do Banco de Dados**
-Navegue até a pasta `database/` e execute o comando:
+---
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="./images/dashboard.png" alt="Dashboard Preview" />
+  <img src="./images/admin_dashboard.png" alt="Admin Preview" />
+</div>
+
+---
+
+## ✨ Funcionalidades {#funcionalidades}
+
+O sistema utiliza **RBAC (Role‑Based Access Control)** permitindo diferentes acessos conforme o perfil do usuário.
+
+### 🎓 Alunos
+
+* Mural inteligente com filtros avançados
+* Candidatura em 1 clique
+* Histórico e gestão de carreira
+* Favoritos
+* Notificações por e‑mail
+
+### 🏢 Recrutadores (Empresas / Professores)
+
+* Criação e gestão de vagas com editor rico
+* Pipeline de seleção (Aprovar / Rejeitar / Análise)
+* Triagem otimizada e download de currículos
+* Feedback automático aos candidatos
+
+### 🛡️ Administradores
+
+* Dashboard analítico
+* Multi‑instituição
+* Controle completo de permissões
+* Auditoria de atividades
+
+---
+
+## 🛠️ Tecnologias Utilizadas {#tecnologias}
+
+### **Monorepo**
+
+Organização unificada com tipagem consistente.
+
+### **Frontend – /frontend**
+
+* Next.js 15 (App Router)
+* TypeScript
+* Tailwind CSS + Shadcn/UI
+* React Context API
+* React Quill
+* Sonner Notifications
+* Lucide Icons
+
+### **Backend – /backend**
+
+* Node.js + Express.js
+* TypeScript
+* Prisma ORM
+* MySQL 8.0
+* Autenticação JWT + Bcrypt
+* Multer (uploads)
+* Nodemailer (SMTP Gmail)
+* Node‑Cron (tarefas agendadas)
+
+### **Infra – /database**
+
+* Docker + Docker Compose
+* phpMyAdmin
+
+---
+
+## 🚀 Como Executar {#como-executar}
+
+### **Pré‑requisitos**
+
+* Node.js v20+
+* Docker Desktop (opcional)
+* Git
+
+### **1. Clonar o Repositório**
 
 ```bash
-cd database
-docker-compose up -d
+git clone https://github.com/MGuimaraesN/Decola-Vagas.git
+cd Decola-Vagas
 ```
 
-  * Isso iniciará dois serviços em segundo plano:
-      * Um banco de dados **MySQL** na porta `3306`.
-      * Um **phpMyAdmin** (interface gráfica) na porta `3310`.
-
-**2. Crie o Arquivo `.env` do Backend**
-O backend (Prisma) precisa saber como se conectar ao banco de dados que você acabou de criar.
-
-  * Crie um arquivo chamado `.env` dentro da pasta `backend/`.
-  * Copie e cole o conteúdo abaixo nele:
-
-<!-- end list -->
-
-```env
-# /backend/.env
-
-# String de conexão baseada no docker-compose.yml
-DATABASE_URL="mysql://mateus:Decola2025.@localhost:3306/DecolaVagas"
-```
-
-*(Esta string usa o usuário (`mateus`), senha (`Decola2025.`), porta (`3306`) e nome do banco (`DecolaVagas`) definidos no `docker-compose.yml`).*
-
-**3. Execute as Migrações do Prisma**
-Com o banco de dados rodando, precisamos criar as tabelas (como a tabela `User`).
-
-  * Navegue até a pasta `backend/` e execute o comando de migração do Prisma:
-
-<!-- end list -->
+### **2. Configurar Variáveis de Ambiente**
 
 ```bash
 cd backend
-npx prisma migrate dev
+cp .env.example .env
 ```
 
-  * Após a conclusão, volte para a pasta raiz do projeto:
+⚠️ Configure as credenciais do Gmail (`GMAIL_USER`, `GMAIL_APP_PASS`).
 
-<!-- end list -->
-
-```bash
-cd ..
-```
-
-## 3\. Instalação das Dependências
-
-Na **raiz do projeto**, execute o script `install:all`. Ele instalará as dependências para a raiz, o `backend` e o `frontend`.
+### **3. Instalar Dependências e Configurar Ambiente**
 
 ```bash
 npm run install:all
 ```
 
-## 4\. Executando a Aplicação Completa
+Ou manualmente:
 
-Com o banco de dados rodando e as dependências instaladas, basta executar o comando `dev` na **raiz do projeto**:
+```bash
+npm install
+npm install --prefix frontend
+npm install --prefix backend
+
+docker-compose up -d
+cd backend
+npx prisma migrate dev
+npx prisma db seed
+```
+
+### **4. Rodar o Projeto**
 
 ```bash
 npm run dev
 ```
 
-Este comando usará o `concurrently` para iniciar os dois servidores ao mesmo tempo:
+* Frontend: [http://localhost:3000](http://localhost:3000)
+* Backend: [http://localhost:5000](http://localhost:5000)
+* phpMyAdmin: [http://localhost:3310](http://localhost:3310)
 
-  * 🚀 **Backend (Express)** estará rodando em `http://localhost:5000`.
-  * 🚀 **Frontend (Next.js)** estará rodando em `http://localhost:3000`.
+---
 
-Abra [http://localhost:3000](https://www.google.com/search?q=http://localhost:3000) no seu navegador para ver a aplicação.
+## 🧪 Dados de Teste (Seed)
 
------
+| Perfil      | E-mail                                                | Senha  |
+| ----------- | ----------------------------------------------------- | ------ |
+| Super Admin | [superadmin@decola.com](mailto:superadmin@decola.com) | 123456 |
+| Admin Inst. | [admin@decola.com](mailto:admin@decola.com)           | 123456 |
+| Empresa     | [recrutador@tech.com](mailto:recrutador@tech.com)     | 123456 |
+| Aluno       | [aluno@decola.com](mailto:aluno@decola.com)           | 123456 |
 
-## Scripts Úteis
+---
 
-  * **`npm run dev`**: Inicia ambos os servidores (backend e frontend).
-  * **`npm run install:all`**: Instala todas as dependências do monorepo.
-  * **`npm run dev --prefix backend`**: Inicia *apenas* o servidor backend.
-  * **`npm run dev --prefix frontend`**: Inicia *apenas* o servidor frontend.
-  * **`cd backend && npx prisma migrate dev`**: (Lembre-se de rodar este comando caso faça alterações no arquivo `backend/prisma/schema.prisma`).
+## 📂 Estrutura do Projeto
+
+```
+Decola-Vagas/
+├── backend/
+│   ├── prisma/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── middlewares/
+│   │   ├── routes/
+│   │   └── services/
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── context/
+└── database/
+```
+
+---
+
+## 🤝 Contribuição
+
+Contribuições são bem‑vindas!
+
+1. Fork o projeto
+2. Crie uma branch (`feature/minha-feature`)
+3. Commit → `git commit -m "Add: Minha feature"`
+4. Push → `git push origin feature/minha-feature`
+5. Abra um Pull Request
+
+---
+
+## 📄 Licença {#licenca}
+
+Este projeto está sob a licença **MIT**.
+
+<div align="center">
+  Desenvolvido com 💙 por <a href="https://github.com/MGuimaraesN">Mateus Guimarães</a>
+</div>
