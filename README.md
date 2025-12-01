@@ -1,23 +1,208 @@
-<div align="center"><img src="frontend/public/decola-vagas-logo.png" alt="Logo Decola Vagas" width="120" /><h1>🚀 Decola Vagas</h1><h3>O Hub Definitivo de Oportunidades Académicas e Profissionais</h3><p><a href="#-sobre-o-projeto">Sobre</a> •<a href="#-funcionalidades">Funcionalidades</a> •<a href="#-tecnologias">Tecnologias</a> •<a href="#-como-executar">Como Executar</a> •<a href="#-licença">Licença</a></p><img src="https://www.google.com/search?q=https://img.shields.io/badge/Status-Em_Desenvolvimento-orange%3Fstyle%3Dfor-the-badge" alt="Status" /><img src="https://www.google.com/search?q=https://img.shields.io/badge/license-MIT-blue%3Fstyle%3Dfor-the-badge" alt="License" /><img src="https://www.google.com/search?q=https://img.shields.io/badge/TypeScript-007ACC%3Fstyle%3Dfor-the-badge%26logo%3Dtypescript%26logoColor%3Dwhite" alt="TypeScript" /></div>📋 Sobre o ProjetoO Decola Vagas é uma plataforma full-stack projetada para resolver a fragmentação de oportunidades no ambiente académico. A aplicação centraliza estágios, iniciação científica, vagas de emprego e programas de trainee num único ecossistema, conectando diretamente alunos, professores, coordenadores e empresas parceiras.Diferente de murais físicos ou grupos de mensagens desorganizados, o Decola Vagas oferece um sistema robusto de gestão de candidaturas, notificações automáticas por e-mail e perfis profissionais completos.📸 Screenshots<div align="center"><!-- Imagens de demonstração (Placeholders) --><img src="https://www.google.com/search?q=https://placehold.co/800x400/1e293b/FFF%3Ftext%3DDashboard%2Bdo%2BAluno" alt="Dashboard do Aluno" /><img src="https://www.google.com/search?q=https://placehold.co/800x400/1e293b/FFF%3Ftext%3DPainel%2BAdministrativo" alt="Painel Administrativo" /></div>✨ FuncionalidadesO sistema possui um controle de acesso baseado em cargos (RBAC) que habilita funcionalidades específicas para cada perfil:🎓 Para AlunosMural Inteligente: Filtros avançados por área, categoria e tipo de vaga.Candidatura em 1-Clique: Utilize o perfil cadastrado ou personalize com um currículo PDF específico.Gestão de Carreira: Histórico completo de candidaturas e feedback em tempo real.Favoritos: Guarde vagas para analisar posteriormente.Notificações: Alertas por e-mail sobre novas vagas e atualizações de status.🏢 Para Recrutadores (Empresas & Professores)Gestão de Vagas: Criação, edição e publicação de oportunidades com editor de texto rico.Workflow de Seleção: Pipeline visual para Aprovar, Rejeitar ou colocar candidaturas em Análise.Triagem Eficiente: Visualização rápida de perfis e download direto de currículos.Feedback Automático: O sistema notifica os candidatos sobre mudanças no processo seletivo.🛡️ Para AdministradoresDashboard Analítico: Métricas globais de adesão, vagas ativas e instituições.Gestão Multi-Instituição: Controle de múltiplas universidades e empresas parceiras.Controle de Usuários: Gestão total de permissões e atribuição de cargos.Auditoria: Visão geral de todas as atividades do sistema.🛠️ Tecnologias UtilizadasO projeto segue uma arquitetura Monorepo, garantindo tipagem consistente e fácil manutenção.Frontend (/frontend)Framework: Next.js 15 (App Router)Linguagem: TypeScriptEstilização: Tailwind CSS + Shadcn/UIGestão de Estado: React Context APIÍcones: Lucide ReactEditor de Texto: React QuillNotificações: SonnerBackend (/backend)Runtime: Node.jsFramework: Express.jsLinguagem: TypeScriptORM: PrismaBase de Dados: MySQL 8.0Autenticação: JWT (JSON Web Tokens) & BCryptUploads: Multer (Armazenamento Local)E-mails: Nodemailer (SMTP Gmail)Tarefas Agendadas: Node-Cron (Lembretes automáticos)Infraestrutura (/database)Containerização: Docker & Docker ComposeGestão de DB: phpMyAdmin incluído no compose🚀 Como ExecutarPré-requisitosNode.js (v20+)Docker Desktop (Recomendado para o Banco de Dados)Git1. Clonar o repositóriogit clone [https://github.com/MGuimaraesN/Decola-Vagas.git](https://github.com/MGuimaraesN/Decola-Vagas.git)
+# 🚀 Decola Vagas
+
+<div align="center">
+  <img src="frontend/public/decola-vagas-logo.png" alt="Decola Vagas Logo" width="120" />
+
+  <h1>Decola Vagas</h1>
+  <h3>O Hub Definitivo de Oportunidades Académicas e Profissionais</h3>
+
+  <p>
+    <a href="#sobre">Sobre</a> •
+    <a href="#funcionalidades">Funcionalidades</a> •
+    <a href="#tecnologias">Tecnologias</a> •
+    <a href="#como-executar">Como Executar</a> •
+    <a href="#licenca">Licença</a>
+  </p>
+</div>
+
+---
+
+## 📋 Sobre o Projeto {#sobre}
+
+O **Decola Vagas** é uma plataforma full‑stack criada para resolver a fragmentação de oportunidades no meio acadêmico. Ela centraliza **estágios, IC, emprego e trainee** em um único ambiente, conectando diretamente alunos, docentes, coordenações e empresas.
+
+Diferente de murais físicos e grupos desorganizados, o Decola Vagas oferece:
+
+* Gestão completa de candidaturas
+* Notificações automáticas por e‑mail
+* Perfis profissionais completos
+* Painel administrativo avançado
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="https://via.placeholder.com/800x400?text=Dashboard+do+Aluno" alt="Dashboard Preview" />
+  <img src="https://via.placeholder.com/800x400?text=Painel+Administrativo" alt="Admin Preview" />
+</div>
+
+---
+
+## ✨ Funcionalidades {#funcionalidades}
+
+O sistema utiliza **RBAC (Role‑Based Access Control)** permitindo diferentes acessos conforme o perfil do usuário.
+
+### 🎓 Alunos
+
+* Mural inteligente com filtros avançados
+* Candidatura em 1 clique
+* Histórico e gestão de carreira
+* Favoritos
+* Notificações por e‑mail
+
+### 🏢 Recrutadores (Empresas / Professores)
+
+* Criação e gestão de vagas com editor rico
+* Pipeline de seleção (Aprovar / Rejeitar / Análise)
+* Triagem otimizada e download de currículos
+* Feedback automático aos candidatos
+
+### 🛡️ Administradores
+
+* Dashboard analítico
+* Multi‑instituição
+* Controle completo de permissões
+* Auditoria de atividades
+
+---
+
+## 🛠️ Tecnologias Utilizadas {#tecnologias}
+
+### **Monorepo**
+
+Organização unificada com tipagem consistente.
+
+### **Frontend – /frontend**
+
+* Next.js 15 (App Router)
+* TypeScript
+* Tailwind CSS + Shadcn/UI
+* React Context API
+* React Quill
+* Sonner Notifications
+* Lucide Icons
+
+### **Backend – /backend**
+
+* Node.js + Express.js
+* TypeScript
+* Prisma ORM
+* MySQL 8.0
+* Autenticação JWT + Bcrypt
+* Multer (uploads)
+* Nodemailer (SMTP Gmail)
+* Node‑Cron (tarefas agendadas)
+
+### **Infra – /database**
+
+* Docker + Docker Compose
+* phpMyAdmin
+
+---
+
+## 🚀 Como Executar {#como-executar}
+
+### **Pré‑requisitos**
+
+* Node.js v20+
+* Docker Desktop (opcional)
+* Git
+
+### **1. Clonar o Repositório**
+
+```bash
+git clone https://github.com/MGuimaraesN/Decola-Vagas.git
 cd Decola-Vagas
-2. Configurar Variáveis de AmbienteAcesse a pasta backend e configure o arquivo .env baseado no exemplo:cd backend
+```
+
+### **2. Configurar Variáveis de Ambiente**
+
+```bash
+cd backend
 cp .env.example .env
-Nota Importante: É necessário configurar as credenciais do Gmail (GMAIL_USER, GMAIL_APP_PASS) no arquivo .env para que o envio de e-mails (recuperação de senha, boas-vindas) funcione corretamente.3. Instalação e ConfiguraçãoNa raiz do projeto, execute o comando mágico que instala dependências do frontend, backend e configura a base de dados (certifique-se que o Docker está rodando):# Instala dependências, sobe o Docker do banco, roda migrações e seed
+```
+
+⚠️ Configure as credenciais do Gmail (`GMAIL_USER`, `GMAIL_APP_PASS`).
+
+### **3. Instalar Dependências e Configurar Ambiente**
+
+```bash
 npm run install:all
-Se preferir rodar manualmente:npm install (na raiz, no /frontend e no /backend)docker-compose up -d (na pasta /database)npx prisma migrate dev e npx prisma db seed (na pasta /backend)4. Executar o ProjetoPara iniciar tanto o Frontend quanto o Backend em modo de desenvolvimento simultaneamente:npm run dev
-Acesse os serviços:Frontend: http://localhost:3000Backend API: http://localhost:5000phpMyAdmin: http://localhost:3310🧪 Dados de Teste (Seed)Ao rodar a instalação, a base de dados é populada automaticamente com dados fictícios. Utilize as seguintes credenciais para teste:PerfilE-mailSenhaSuper Adminsuperadmin@decola.com123456Admin Inst.admin@decola.com123456Empresarecrutador@tech.com123456Alunoaluno@decola.com123456📂 Estrutura do ProjetoDecola-Vagas/
-├── backend/                # API Express e Lógica de Servidor
-│   ├── prisma/             # Schemas e Migrations do Banco
+```
+
+Ou manualmente:
+
+```bash
+npm install
+npm install --prefix frontend
+npm install --prefix backend
+
+docker-compose up -d
+cd backend
+npx prisma migrate dev
+npx prisma db seed
+```
+
+### **4. Rodar o Projeto**
+
+```bash
+npm run dev
+```
+
+* Frontend: [http://localhost:3000](http://localhost:3000)
+* Backend: [http://localhost:5000](http://localhost:5000)
+* phpMyAdmin: [http://localhost:3310](http://localhost:3310)
+
+---
+
+## 🧪 Dados de Teste (Seed)
+
+| Perfil      | E-mail                                                | Senha  |
+| ----------- | ----------------------------------------------------- | ------ |
+| Super Admin | [superadmin@decola.com](mailto:superadmin@decola.com) | 123456 |
+| Admin Inst. | [admin@decola.com](mailto:admin@decola.com)           | 123456 |
+| Empresa     | [recrutador@tech.com](mailto:recrutador@tech.com)     | 123456 |
+| Aluno       | [aluno@decola.com](mailto:aluno@decola.com)           | 123456 |
+
+---
+
+## 📂 Estrutura do Projeto
+
+```
+Decola-Vagas/
+├── backend/
+│   ├── prisma/
 │   ├── src/
-│   │   ├── controllers/    # Lógica de Negócio
-│   │   ├── middlewares/    # Autenticação, RBAC, Uploads
-│   │   ├── routes/         # Definição de Rotas
-│   │   └── services/       # Serviços de E-mail, Cron, etc.
-│   └── ...
-├── frontend/               # Aplicação Next.js
-│   ├── app/                # App Router (Páginas)
-│   ├── components/         # Componentes Reutilizáveis (Shadcn/UI)
-│   ├── context/            # AuthContext (Gerenciamento de Sessão)
-│   └── ...
-└── database/               # Configuração Docker (MySQL + phpMyAdmin)
-🤝 ContribuiçãoContribuições são bem-vindas! Sinta-se à vontade para abrir uma issue ou enviar um Pull Request.Faça um Fork do projetoCrie uma Branch para a sua Feature (git checkout -b feature/MinhaFeature)Faça o Commit (git commit -m 'Add: Minha nova feature')Faça o Push (git push origin feature/MinhaFeature)Abra um Pull Request📄 LicençaEste projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.<div align="center">Desenvolvido com 💙 por <a href="https://github.com/MGuimaraesN">Mateus Guimarães</a></div>
+│   │   ├── controllers/
+│   │   ├── middlewares/
+│   │   ├── routes/
+│   │   └── services/
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── context/
+└── database/
+```
+
+---
+
+## 🤝 Contribuição
+
+Contribuições são bem‑vindas!
+
+1. Fork o projeto
+2. Crie uma branch (`feature/minha-feature`)
+3. Commit → `git commit -m "Add: Minha feature"`
+4. Push → `git push origin feature/minha-feature`
+5. Abra um Pull Request
+
+---
+
+## 📄 Licença {#licenca}
+
+Este projeto está sob a licença **MIT**.
+
+<div align="center">
+  Desenvolvido com 💙 por <a href="https://github.com/MGuimaraesN">Mateus Guimarães</a>
+</div>
