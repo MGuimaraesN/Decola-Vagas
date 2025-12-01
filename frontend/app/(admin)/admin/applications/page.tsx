@@ -63,7 +63,7 @@ export default function AdminApplicationsPage() {
   };
 
   useEffect(() => {
-    document.title = 'Gestão de Candidaturas | Decola Vagas';
+    document.title = 'Admin: Candidaturas | Decola Vagas';
     fetchApplications();
   }, [token]);
 

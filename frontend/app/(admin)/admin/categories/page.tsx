@@ -43,7 +43,7 @@ export default function CategoriesPage() {
     } catch (error) { toast.error('Erro de rede.'); } finally { setIsLoading(false); }
   };
 
-  useEffect(() => { document.title = 'Admin: Categorias'; fetchData(); }, [token]);
+  useEffect(() => { document.title = 'Admin: Categorias | Decola Vagas'; fetchData(); }, [token]);
   useEffect(() => { setFiltered(categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))); }, [search, categories]);
 
   const openModal = (cat: Category | null = null) => { setSelected(cat); setName(cat ? cat.name : ''); setIsModalOpen(true); };

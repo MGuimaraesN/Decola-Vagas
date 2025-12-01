@@ -33,7 +33,7 @@ export default function AreasPage() {
     } catch { toast.error('Erro de rede.'); } finally { setIsLoading(false); }
   };
 
-  useEffect(() => { document.title = 'Admin: Áreas'; fetchData(); }, [token]);
+  useEffect(() => { document.title = 'Admin: Áreas | Decola Vagas'; fetchData(); }, [token]);
   useEffect(() => { setFiltered(areas.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))); }, [search, areas]);
 
   const handleSave = async (e: FormEvent) => {
