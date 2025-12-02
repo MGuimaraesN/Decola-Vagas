@@ -4,7 +4,7 @@ import { FileQuestion, ArrowLeft } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Página não encontrada | Decola Vagas',
+  title: 'Página não encontrada | Foxx Recruitment',
 };
 
 export default function NotFound() {
@@ -48,7 +48,7 @@ export default function NotFound() {
       </div>
       
       <div className="absolute bottom-8 text-sm text-slate-600">
-        &copy; {new Date().getFullYear()} Decola Vagas
+        &copy; {new Date().getFullYear()} Foxx Recruitment
       </div>
     </div>
   );

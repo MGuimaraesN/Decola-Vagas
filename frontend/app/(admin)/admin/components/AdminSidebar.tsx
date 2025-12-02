@@ -39,7 +39,7 @@ export default function AdminSidebar({ navLinks }: AdminSidebarProps) {
             <Shield className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white leading-tight">Decola Admin</h1>
+            <h1 className="text-lg font-bold text-white leading-tight">Foxx Admin</h1>
             <p className="text-xs text-neutral-500 font-medium">Gestão do Sistema</p>
           </div>
         </div>

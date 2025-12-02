@@ -37,7 +37,7 @@ export default function AdminJobsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    document.title = 'Admin: Vagas | Decola Vagas';
+    document.title = 'Admin: Vagas | Foxx Recruitment';
     const fetchData = async () => {
       if (!token) return;
       setIsLoading(true);

@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.title = 'Esqueceu a Senha? | Decola Vagas';
+    document.title = 'Esqueceu a Senha? | Foxx Recruitment';
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
             <div className="p-1.5 rounded-lg bg-blue-600/10 group-hover:bg-blue-600/20 transition-colors">
                <Building className="h-6 w-6 text-blue-500" />
             </div>
-            <span className="text-xl font-bold tracking-tight">Decola Vagas</span>
+            <span className="text-xl font-bold tracking-tight">Foxx Recruitment</span>
           </Link>
           <div className="z-10">
             <h2 className="text-3xl font-bold leading-tight mb-4">
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
             </p>
           </div>
           <div className="text-sm text-slate-500 z-10">
-            &copy; {new Date().getFullYear()} Decola Vagas
+            &copy; {new Date().getFullYear()} Foxx Recruitment
           </div>
         </div>
 
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
               <div className="p-1.5 rounded-lg bg-blue-600/10 group-hover:bg-blue-600/20 transition-colors">
                 <Building className="h-6 w-6 text-blue-500" />
               </div>
-              <span className="text-2xl font-bold text-white">Decola Vagas</span>
+              <span className="text-2xl font-bold text-white">Foxx Recruitment</span>
             </Link>
 
             <div className="mb-8">

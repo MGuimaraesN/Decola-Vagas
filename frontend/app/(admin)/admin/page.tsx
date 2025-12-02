@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
   const { token, user } = useAuth();
 
   useEffect(() => {
-    document.title = 'Admin: Dashboard | Decola Vagas';
+    document.title = 'Admin: Dashboard | Foxx Recruitment';
   }, []);
   
   useEffect(() => {

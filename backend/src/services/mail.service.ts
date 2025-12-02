@@ -20,14 +20,13 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to: string | string[], subject: string, html: string) => {
   const mailOptions = {
-    from: `"Decola Vagas" <${process.env.GMAIL_USER}>`,
-    to: Array.isArray(to) ? to.join(',') : to, // Handles multiple recipients
+    from: `"Foxx Recruitment" <${process.env.GMAIL_USER}>`,
+    to: Array.isArray(to) ? to.join(',') : to,
     subject: subject,
     html: html,
   };
 
   try {
-    // await transporter.verify(); // Optional: verify connection
     const info = await transporter.sendMail(mailOptions);
     console.log(`E-mail enviado para ${to}:`, info.messageId);
     return { success: true, id: info.messageId };
@@ -41,34 +40,25 @@ export const sendPasswordResetEmail = async (to: string, token: string) => {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const resetLink = `${baseUrl}/reset-password?token=${token}`;
   const htmlContent = getResetPasswordTemplate(resetLink, to);
-  return sendEmail(to, 'Redefinição de Senha - Decola Vagas', htmlContent);
+  return sendEmail(to, 'Redefinição de Senha - Foxx Recruitment', htmlContent);
 };
 
 export const sendWelcomeEmail = async (to: string, userName: string) => {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const profileLink = `${baseUrl}/dashboard/profile`;
   const htmlContent = getWelcomeTemplate(userName, profileLink);
-  return sendEmail(to, 'Bem-vindo ao Decola Vagas!', htmlContent);
+  return sendEmail(to, 'Bem-vindo ao Foxx Recruitment!', htmlContent);
 };
 
 export const sendNewJobNotification = async (recipients: string[], jobTitle: string, institutionName: string) => {
-  // Use BCC for mass emails or loop. For simplicity and privacy, loop or individual sends are better if personalized,
-  // but if content is same, BCC is efficient. However, `to` field reveals all.
-  // Better practice: Loop and send individually or use BCC.
-  // Given requirements: "lidar com múltiplos destinatários de forma eficiente (loop ou BCC)"
-
-  // Implementation using BCC to avoid leaking emails if many recipients
   if (recipients.length === 0) return;
-
   const htmlContent = getNewJobTemplate(jobTitle, institutionName);
-
   const mailOptions = {
-    from: `"Decola Vagas" <${process.env.GMAIL_USER}>`,
-    bcc: recipients, // Use BCC
+    from: `"Foxx Recruitment" <${process.env.GMAIL_USER}>`,
+    bcc: recipients,
     subject: `Nova Vaga: ${jobTitle}`,
     html: htmlContent,
   };
-
   try {
       const info = await transporter.sendMail(mailOptions);
       console.log('Notificação de nova vaga enviada (BCC):', info.messageId);
@@ -102,4 +92,43 @@ export const sendSavedJobReminder = async (to: string, jobTitle: string) => {
 export const sendApplicationFeedback = async (to: string, jobTitle: string) => {
   const htmlContent = getApplicationFeedbackTemplate(jobTitle);
   return sendEmail(to, `Aplicação Recebida: ${jobTitle}`, htmlContent);
+};
+
+// NEW METHODS FOR FOXX RECRUITMENT
+
+export const sendTrialLessonSchedule = async (to: string, jobTitle: string, date: Date) => {
+    // Simple HTML content directly here or fetch from templates
+    const dateStr = date.toLocaleString('pt-BR');
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
+            <div style="background-color: white; padding: 20px; border-radius: 8px;">
+                <h2 style="color: #0f172a;">Agendamento de Prova Didática</h2>
+                <p>Olá,</p>
+                <p>Sua prova didática para a vaga <strong>${jobTitle}</strong> foi agendada.</p>
+                <p style="font-size: 18px; font-weight: bold; color: #2563eb;">Data: ${dateStr}</p>
+                <p>Por favor, esteja preparado.</p>
+                <p>Atenciosamente,<br>Equipe Foxx Recruitment</p>
+            </div>
+        </div>
+    `;
+    return sendEmail(to, `Agendamento de Prova: ${jobTitle}`, htmlContent);
+};
+
+export const sendMagicLink = async (to: string, jobTitle: string, link: string) => {
+    const htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f4;">
+            <div style="background-color: white; padding: 20px; border-radius: 8px;">
+                <h2 style="color: #0f172a;">Parabéns! Você foi Aprovado(a).</h2>
+                <p>Olá,</p>
+                <p>Você obteve a nota necessária na prova didática para a vaga <strong>${jobTitle}</strong>.</p>
+                <p>Agora, precisamos que você envie seus documentos para formalização.</p>
+                <a href="${link}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin: 16px 0;">
+                    Enviar Documentos
+                </a>
+                <p style="font-size: 12px; color: #666;">Este link expira em 7 dias.</p>
+                <p>Atenciosamente,<br>Equipe Foxx Recruitment</p>
+            </div>
+        </div>
+    `;
+    return sendEmail(to, `Aprovação e Envio de Documentos: ${jobTitle}`, htmlContent);
 };

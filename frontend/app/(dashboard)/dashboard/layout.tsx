@@ -54,7 +54,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen w-full bg-white">
       <Sidebar
-        title="Decola Vagas"
+        title="Foxx Recruitment"
         icon={Building}
         navLinks={filteredLinks} 
       />

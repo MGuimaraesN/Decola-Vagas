@@ -81,7 +81,7 @@ export default function Header() {
     if (path === '/dashboard/profile') return 'Meu Perfil';
     if (path.includes('/candidates')) return 'Gestão de Candidatos';
     
-    return 'Decola Vagas'; // Padrão
+    return 'Foxx Recruitment'; // Padrão
   };
 
   const pageTitle = getPageTitle(pathname);

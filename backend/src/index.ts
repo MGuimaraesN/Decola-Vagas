@@ -1,10 +1,12 @@
 import app from './app.js';
 import { startCronJobs } from './cron/jobs.js';
+import { startCronJobs as startLgpdJobs } from './cron/lgpd.job.js';
 
 const port = process.env.PORT || 5000;
 
 // Inicia os Jobs agendados
 startCronJobs();
+startLgpdJobs();
 
 // --- Iniciar Servidor ---
 app.listen(port, () => {

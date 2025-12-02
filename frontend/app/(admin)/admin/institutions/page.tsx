@@ -47,7 +47,7 @@ export default function InstitutionsPage() {
   };
 
   useEffect(() => {
-    document.title = 'Admin: Instituições | Decola Vagas';
+    document.title = 'Admin: Instituições | Foxx Recruitment';
     fetchData();
   }, [token]);
 

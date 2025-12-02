@@ -56,7 +56,7 @@ export default function ProfilePage() {
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
   useEffect(() => {
-    document.title = 'Meu Perfil | Decola Vagas';
+    document.title = 'Meu Perfil | Foxx Recruitment';
   }, []);
   
   useEffect(() => {

@@ -12,6 +12,8 @@ import { adminRoutes } from './routes/admin.routes.js';
 import { savedJobRoutes } from './routes/savedjob.routes.js';
 import { applicationRoutes } from './routes/application.routes.js';
 import { notificationRoutes } from './routes/notification.routes.js'; // Novo
+import { publicJobRoutes } from './routes/public/public-job.routes.js';
+import { uploadRoutes } from './routes/upload/upload.routes.js';
 import { globalErrorHandler } from './middlewares/error.middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -34,6 +36,8 @@ app.use('/admin', adminRoutes);
 app.use('/saved-jobs', savedJobRoutes);
 app.use('/applications', applicationRoutes);
 app.use('/notifications', notificationRoutes); // Novo
+app.use('/public', publicJobRoutes);
+app.use('/upload', uploadRoutes);
 
 app.use(globalErrorHandler);
 

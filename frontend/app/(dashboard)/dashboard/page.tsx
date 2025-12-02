@@ -49,7 +49,7 @@ export default function DashboardPage() {
 
   const isGlobalAdmin = useMemo(() => user?.institutions.some((inst: any) => inst.role.name === 'admin' || inst.role.name === 'superadmin'), [user]);
 
-  useEffect(() => { document.title = 'Mural de Vagas | Decola Vagas'; }, []);
+  useEffect(() => { document.title = 'Mural de Vagas | Foxx Recruitment'; }, []);
 
   // Fetch Filtros
   useEffect(() => {

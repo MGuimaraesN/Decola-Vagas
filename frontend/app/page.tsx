@@ -85,7 +85,7 @@ export default function LandingPage() {
   // --- Lógica de Busca ---
 
   useEffect(() => {
-    document.title = 'Decola Vagas';
+    document.title = 'Foxx Recruitment';
   }, []);
 
   useEffect(() => {
@@ -160,7 +160,7 @@ export default function LandingPage() {
               <Building className="h-5 w-5" />
             </div>
             <span className="text-xl font-bold text-white tracking-tight">
-              Decola Vagas
+              Foxx Recruitment
             </span>
           </Link>
           <nav className="flex items-center gap-4">
@@ -352,10 +352,10 @@ export default function LandingPage() {
             <div className="bg-blue-600 rounded-md p-1">
                 <Building className="h-4 w-4 text-white" />
             </div>
-            <span className="text-lg font-bold text-white">Decola Vagas</span>
+            <span className="text-lg font-bold text-white">Foxx Recruitment</span>
           </div>
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} Decola Vagas. Todos os direitos reservados.
+            &copy; {new Date().getFullYear()} Foxx Recruitment. Todos os direitos reservados.
           </p>
         </div>
       </footer>

@@ -63,7 +63,7 @@ export default function CompaniesPage() {
   };
 
   useEffect(() => {
-    document.title = 'Admin: Empresas | Decola Vagas';
+    document.title = 'Admin: Empresas | Foxx Recruitment';
     fetchCompanies();
   }, [token]);
 

@@ -1,37 +1,49 @@
+import type { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { prisma } from '../database/prisma.js';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const uploadDir = path.join(__dirname, '../../public/uploads');
-
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
+// --- Legacy Multer Config for Public Avatars/Resumes ---
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir)
-  },
-  filename: function (req, file, cb) {
-    // Mantém a extensão original para o navegador saber se é .pdf ou .png
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, uniqueSuffix + path.extname(file.originalname))
-  }
-})
-
-export const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    fileFilter: (req, file, cb) => {
-        // Aceita imagens e PDFs
-        if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {
-            cb(null, true);
-        } else {
-            cb(new Error('Apenas imagens e PDFs são permitidos'));
-        }
+    destination: (req, file, cb) => {
+        cb(null, 'public/uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
     }
 });
+
+export const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+});
+
+// --- New Middleware Class for Secure Uploads ---
+export class UploadMiddleware {
+    async validateUploadToken(req: Request, res: Response, next: NextFunction) {
+        const token = req.headers['x-upload-token'] as string || req.query.token as string;
+
+        if (!token) {
+            return res.status(401).json({ error: 'Token de upload necessário.' });
+        }
+
+        try {
+            const secret = process.env.JWT_SECRET!;
+            const decoded = jwt.verify(token, secret) as any;
+
+            const app = await prisma.application.findUnique({
+                where: { id: decoded.applicationId }
+            });
+
+            if (!app) {
+                return res.status(403).json({ error: 'Candidatura não encontrada.' });
+            }
+
+            (req as any).applicationId = decoded.applicationId;
+            next();
+        } catch (error) {
+            return res.status(403).json({ error: 'Token inválido ou expirado.' });
+        }
+    }
+}

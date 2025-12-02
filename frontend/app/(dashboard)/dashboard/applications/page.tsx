@@ -62,7 +62,7 @@ export default function MyApplicationsPage() {
   const { token } = useAuth();
 
   useEffect(() => {
-    document.title = 'Minhas Candidaturas | Decola Vagas';
+    document.title = 'Minhas Candidaturas | Foxx Recruitment';
     if (token) {
         fetchData();
     }

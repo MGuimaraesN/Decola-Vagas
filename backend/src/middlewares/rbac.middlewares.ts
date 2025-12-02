@@ -13,9 +13,14 @@ export class RbacMiddleware {
                     return res.status(401).json({ error: 'Acesso negado: Usuário não autenticado.' });
                 }
 
-                // --- INÍCIO DA LÓGICA CORRIGIDA ---
+                // --- LOGIC START ---
 
-                // 1. Separar cargos globais (NÃO precisam de instituição ativa)
+                // 1. Separate global roles (do NOT require active institution context)
+                // Director might be considered semi-global depending on requirement,
+                // but requirement says Director has Read-All and Approval rights.
+                // Typically Director is per-institution, but with high privilege.
+                // For now, treat Director as Institution Specific unless told otherwise.
+                // Superadmin is definitely global. Admin is global/per-inst ambiguous in some systems but here seems global or high-level.
                 const globalRoles = allowedRoles.filter(
                     role => role === 'superadmin' || role === 'admin'
                 );
@@ -28,21 +33,22 @@ export class RbacMiddleware {
                         },
                     });
 
-                    // Se o usuário TEM um cargo global em qualquer instituição, PERMITA o acesso.
-                    // Esta verificação ignora o 'activeInstitutionId' propositalmente.
                     if (userGlobalRole) {
                         return next();
                     }
                 }
 
-                // 2. Separar cargos de instituição (PRECISAM de instituição ativa)
+                // 2. Separate institution-specific roles
                 const institutionSpecificRoles = allowedRoles.filter(
                     role => role !== 'superadmin' && role !== 'admin'
                 );
 
                 if (institutionSpecificRoles.length > 0) {
-                    // SÓ AQUI verificamos a instituição ativa.
+                    // Check active institution
                     if (!userPayload.activeInstitutionId) {
+                        // Allow if the user has this role in ANY institution? No, system context is usually current institution.
+                        // However, for some candidate operations, they might not have "Active Institution" selected in UI if they are just candidates.
+                        // But typically RBAC protects routes that assume an active context.
                         return res.status(403).json({ error: 'Acesso negado: Nenhuma instituição ativa.' });
                     }
 
@@ -58,14 +64,11 @@ export class RbacMiddleware {
                         return res.status(403).json({ error: 'Acesso negado: Permissões insuficientes para esta instituição.' });
                     }
 
-                    // Se o usuário tem o cargo específico na instituição ativa, PERMITA.
                     return next();
                 }
 
-                // 3. Fallback: Se a rota exigia um cargo (ex: 'admin') e o usuário não o tem.
+                // 3. Fallback
                 return res.status(403).json({ error: 'Acesso negado: Permissões insuficientes.' });
-
-                // --- FIM DA LÓGICA CORRIGIDA ---
 
             } catch (error) {
                 res.status(500).json({ error: 'Erro interno ao verificar permissões.' });

@@ -82,7 +82,7 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    document.title = 'Admin: Usuários | Decola Vagas';
+    document.title = 'Admin: Usuários | Foxx Recruitment';
     fetchData();
   }, [token]);
 

@@ -81,7 +81,18 @@ async function main() {
   // 1. ROLES (Papéis do Sistema)
   // =================================================
   console.log('👤 Verificando Cargos...');
-  const rolesList = ['superadmin', 'admin', 'professor', 'coordenador', 'empresa', 'student'];
+
+  // Atualiza 'student' para 'candidate' se existir
+  const studentRole = await prisma.role.findUnique({ where: { name: 'student' } });
+  if (studentRole) {
+      await prisma.role.update({
+          where: { name: 'student' },
+          data: { name: 'candidate' }
+      });
+      console.log("Renamed 'student' role to 'candidate'");
+  }
+
+  const rolesList = ['superadmin', 'admin', 'professor', 'coordenador', 'empresa', 'candidate', 'hr', 'director'];
   const roleMap: Record<string, number> = {};
   
   for (const name of rolesList) {
@@ -168,11 +179,13 @@ async function main() {
 
   // Lista de usuários fixos para teste
   const fixedUsers = [
-    { email: 'superadmin@decola.com', first: 'Super', last: 'Admin', role: 'superadmin', instId: mainUniversityId },
-    { email: 'admin@decola.com', first: 'Admin', last: 'UF', role: 'admin', instId: mainUniversityId },
-    { email: 'professor@decola.com', first: 'Roberto', last: 'Professor', role: 'professor', instId: mainUniversityId },
-    { email: 'coordenador@decola.com', first: 'Sandra', last: 'Coordenadora', role: 'coordenador', instId: mainUniversityId },
-    { email: 'aluno@decola.com', first: 'João', last: 'Aluno', role: 'student', instId: mainUniversityId, course: 'Engenharia de Software' },
+    { email: 'superadmin@foxx.com', first: 'Super', last: 'Admin', role: 'superadmin', instId: mainUniversityId },
+    { email: 'admin@foxx.com', first: 'Admin', last: 'UF', role: 'admin', instId: mainUniversityId },
+    { email: 'professor@foxx.com', first: 'Roberto', last: 'Professor', role: 'professor', instId: mainUniversityId },
+    { email: 'coordenador@foxx.com', first: 'Sandra', last: 'Coordenadora', role: 'coordenador', instId: mainUniversityId },
+    { email: 'candidato@foxx.com', first: 'João', last: 'Candidato', role: 'candidate', instId: mainUniversityId, course: 'Engenharia de Software' },
+    { email: 'hr@foxx.com', first: 'Helena', last: 'RH', role: 'hr', instId: mainUniversityId },
+    { email: 'director@foxx.com', first: 'Daniel', last: 'Diretor', role: 'director', instId: mainUniversityId },
     { email: 'recrutador@tech.com', first: 'Carlos', last: 'Recruiter', role: 'empresa', instId: mainCompanyId }
   ];
 
@@ -184,10 +197,10 @@ async function main() {
     const nameData = generateName();
     const instId = getRandomItem(Object.values(instMap).slice(0, 4)); // Apenas universidades
     bulkUsers.push({
-      email: `aluno${i}@teste.com`,
+      email: `candidato${i}@teste.com`,
       first: nameData.first,
       last: nameData.last,
-      role: 'student',
+      role: 'candidate',
       instId,
       course: getRandomItem(['Sistemas de Informação', 'Direito', 'Administração', 'Enfermagem']),
       graduationYear: getRandomInt(2025, 2029)
@@ -217,7 +230,7 @@ async function main() {
   
   const userIds: number[] = [];
   const recruiterIds: number[] = [];
-  const studentIds: number[] = [];
+  const candidateIds: number[] = [];
 
   for (const u of allUsersToProcess) {
     // 1. Upsert User
@@ -250,8 +263,8 @@ async function main() {
     });
 
     userIds.push(user.id);
-    if (u.role === 'student') studentIds.push(user.id);
-    if (['professor', 'coordenador', 'admin', 'empresa', 'superadmin'].includes(u.role)) recruiterIds.push(user.id);
+    if (u.role === 'candidate') candidateIds.push(user.id);
+    if (['professor', 'coordenador', 'admin', 'empresa', 'superadmin', 'hr', 'director'].includes(u.role)) recruiterIds.push(user.id);
   }
 
   // =================================================
@@ -292,6 +305,11 @@ async function main() {
     const status = Math.random() > 0.2 ? 'published' : (Math.random() > 0.5 ? 'closed' : 'rascunho');
     const isPublic = isCompany || Math.random() > 0.8;
 
+    // New Foxx fields
+    const isAcademic = Math.random() > 0.5;
+    const passingGrade = isAcademic ? 7.0 : null;
+    const requiredDocs = isAcademic ? ["RG", "CPF", "Diploma", "Histórico Escolar"] : ["RG", "CPF"];
+
     // Verificar se já existe uma vaga com este título para este autor nesta instituição (para evitar flood no seed)
     const existingJob = await prisma.job.findFirst({
         where: {
@@ -307,7 +325,7 @@ async function main() {
         // Se já existe, atualiza (opcional, apenas para garantir dados frescos)
         const updated = await prisma.job.update({
             where: { id: existingJob.id },
-            data: { status, isPublic } 
+            data: { status, isPublic, isAcademic, passingGrade, requiredDocs }
         });
         jobId = updated.id;
     } else {
@@ -326,7 +344,10 @@ async function main() {
                 categoryId: getRandomItem(catIds),
                 companyName,
                 ip: '127.0.0.1',
-                createdAt: new Date(Date.now() - getRandomInt(0, 30) * 24 * 60 * 60 * 1000) // Data retroativa
+                createdAt: new Date(Date.now() - getRandomInt(0, 30) * 24 * 60 * 60 * 1000), // Data retroativa
+                isAcademic,
+                passingGrade,
+                requiredDocs: requiredDocs as any
             }
         });
         jobId = created.id;
@@ -343,28 +364,28 @@ async function main() {
   console.log('📝 Gerenciando Candidaturas...');
   
   if (jobsCreatedIds.length > 0) {
-      for (const studentId of studentIds) {
+      for (const candidateId of candidateIds) {
         // Cada aluno aplica para 1 a 3 vagas aleatórias
         const numApps = getRandomInt(1, 3);
         
         for (let k = 0; k < numApps; k++) {
             const jobId = getRandomItem(jobsCreatedIds);
-            const statusOptions: ApplicationStatus[] = ['PENDING', 'PENDING', 'REVIEWING', 'ACCEPTED', 'REJECTED'];
+            const statusOptions: ApplicationStatus[] = ['PENDING', 'TRIAL_SCHEDULED', 'GRADED_PASSED', 'GRADED_FAILED', 'DOCS_PENDING', 'DOCS_SUBMITTED', 'HIRED', 'REJECTED'];
             
             // Upsert usando a chave composta @@unique([userId, jobId]) definida no schema
             await prisma.application.upsert({
                 where: {
                     userId_jobId: {
-                        userId: studentId,
+                        userId: candidateId,
                         jobId: jobId
                     }
                 },
                 update: {}, // Não altera se já existir
                 create: {
-                    userId: studentId,
+                    userId: candidateId,
                     jobId: jobId,
                     status: getRandomItem(statusOptions),
-                    resumeUrl: `/uploads/fake-resume-${studentId}.pdf`
+                    resumeUrl: `/uploads/fake-resume-${candidateId}.pdf`
                 }
             });
         }
@@ -376,20 +397,20 @@ async function main() {
   // =================================================
   console.log('❤️ Gerenciando Favoritos...');
   if (jobsCreatedIds.length > 0) {
-      for (const studentId of studentIds) {
+      for (const candidateId of candidateIds) {
         const jobId = getRandomItem(jobsCreatedIds);
         
         // Upsert usando a chave composta @@unique([userId, jobId])
         await prisma.savedJob.upsert({
             where: {
                 userId_jobId: {
-                    userId: studentId,
+                    userId: candidateId,
                     jobId: jobId
                 }
             },
             update: {}, 
             create: {
-                userId: studentId,
+                userId: candidateId,
                 jobId: jobId
             }
         });
@@ -402,13 +423,13 @@ async function main() {
   // Notificações geralmente não têm unique key complexa, então podemos criar apenas se o user não tiver nenhuma, ou sempre criar.
   // Para evitar flood, vamos verificar se o usuário já tem notificações.
   console.log('🔔 Gerenciando Notificações...');
-  for (const studentId of studentIds) {
-      const count = await prisma.notification.count({ where: { userId: studentId } });
+  for (const candidateId of candidateIds) {
+      const count = await prisma.notification.count({ where: { userId: candidateId } });
       if (count === 0) {
         await prisma.notification.create({
             data: {
-                userId: studentId,
-                title: 'Bem-vindo ao Decola Vagas!',
+                userId: candidateId,
+                title: 'Bem-vindo ao Foxx Recruitment!',
                 message: 'Complete seu perfil para ter mais chances nas candidaturas.',
                 read: false,
                 link: '/dashboard/profile'
@@ -419,7 +440,7 @@ async function main() {
 
   console.log('✅ SEED FINALIZADO COM SUCESSO! 🚀');
   console.log('   O banco de dados foi populado/atualizado sem duplicidades.');
-  console.log('   Teste com: admin@decola.com (senha: 123456)');
+  console.log('   Teste com: admin@foxx.com (senha: 123456)');
 }
 
 main()

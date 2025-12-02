@@ -1,4 +1,4 @@
-// --- Theme Constants (Dark Mode to match Decola Vagas) ---
+// --- Theme Constants (Dark Mode to match Foxx Recruitment) ---
 // Baseado no tailwind config do site: 
 // brand.dark: #0f172a (Slate 900)
 // brand.sidebar: #020617 (Slate 950) - Usado no Header
@@ -77,7 +77,7 @@ const getEmailLayout = (title: string, content: string): string => {
                     </td>
                     <!-- Logo Text -->
                     <td align="left" valign="middle" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 700; color: #ffffff; line-height: 32px;">
-                        <a href="${APP_URL}" target="_blank" style="text-decoration: none; color: #ffffff;">Decola Vagas</a>
+                        <a href="${APP_URL}" target="_blank" style="text-decoration: none; color: #ffffff;">Foxx Recruitment</a>
                     </td>
                   </tr>
                 </table>
@@ -108,7 +108,7 @@ const getEmailLayout = (title: string, content: string): string => {
             <tr>
               <td align="center" style="padding: 32px 40px;">
                 <p style="${textStyle('13px', THEME.textMuted, '400', 'center')} margin-bottom: 16px;">
-                  &copy; 2025 Decola Vagas. Todos os direitos reservados.
+                  &copy; 2025 Foxx Recruitment. Todos os direitos reservados.
                 </p>
                 <p style="${textStyle('12px', THEME.textMuted, '400', 'center')}">
                   <a href="#" style="color: ${THEME.accent}; text-decoration: none;">Política de Privacidade</a>
@@ -164,7 +164,7 @@ export const getResetPasswordTemplate = (resetLink: string, userEmail: string): 
 export const getWelcomeTemplate = (userName: string, profileLink: string): string => {
   const content = `
     <tr><td style="${textStyle('24px', THEME.text, '700', 'center')} padding-bottom: 16px;">Bem-vindo a bordo! 🚀</td></tr>
-    <tr><td style="${textStyle('16px', THEME.textMuted, '400', 'center')} padding-bottom: 32px;">Olá, <strong style="color: ${THEME.text};">${userName}</strong>. Estamos muito felizes em ter você conosco no Decola Vagas.</td></tr>
+    <tr><td style="${textStyle('16px', THEME.textMuted, '400', 'center')} padding-bottom: 32px;">Olá, <strong style="color: ${THEME.text};">${userName}</strong>. Estamos muito felizes em ter você conosco no Foxx Recruitment.</td></tr>
     
     <tr>
         <td style="background-color: ${THEME.headerBg}; padding: 24px; border-radius: 8px; border: 1px solid ${THEME.border};" bgcolor="${THEME.headerBg}">
@@ -201,7 +201,7 @@ export const getWelcomeTemplate = (userName: string, profileLink: string): strin
         </table>
     </td></tr>
   `;
-  return getEmailLayout("Bem-vindo ao Decola Vagas", content);
+  return getEmailLayout("Bem-vindo ao Foxx Recruitment", content);
 };
 
 export const getNewJobTemplate = (jobTitle: string, institutionName: string): string => {
